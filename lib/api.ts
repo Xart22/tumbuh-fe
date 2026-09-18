@@ -4,6 +4,7 @@ import type {
   CreatedOrder,
   DailySummary,
   HourlySalesRow,
+  LoginOwnerResult,
   Modifier,
   ModifierGroup,
   OrderType,
@@ -62,6 +63,23 @@ export function registerMerchant(
   input: RegisterMerchantInput,
 ): Promise<RegisterMerchantResult> {
   return apiFetch<RegisterMerchantResult>('/v1/onboarding/register', {
+    method: 'POST',
+    body: input,
+    outletScoped: false,
+  });
+}
+
+export type OwnerLoginInput = {
+  email: string;
+  password: string;
+  tenantSlug: string;
+};
+
+/** Owner/manager password login inside one workspace. */
+export function loginOwner(
+  input: OwnerLoginInput,
+): Promise<LoginOwnerResult> {
+  return apiFetch<LoginOwnerResult>('/v1/auth/login', {
     method: 'POST',
     body: input,
     outletScoped: false,

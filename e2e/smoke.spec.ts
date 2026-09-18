@@ -40,3 +40,12 @@ test('login validates PIN length client-side', async ({ page }) => {
   await page.getByRole('button', { name: /^masuk$/i }).click();
   await expect(page.getByText('PIN minimal 4 digit.')).toBeVisible();
 });
+
+test('login owner tab validates email client-side', async ({ page }) => {
+  await page.goto('/login?mode=owner');
+  await expect(page.getByRole('heading', { name: /masuk backoffice/i })).toBeVisible();
+  await page.getByPlaceholder('owner@usaha.com').fill('bukan-email');
+  await page.getByPlaceholder('••••••••').fill('rahasia123');
+  await page.getByRole('button', { name: /^masuk$/i }).click();
+  await expect(page.getByText('Email yang valid wajib diisi.')).toBeVisible();
+});

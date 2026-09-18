@@ -10,7 +10,7 @@ export default function BackofficeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGate>
+    <AuthGate requireOutlet={false}>
       <div className="flex min-h-screen flex-col">
         <AppNav />
         <div className="flex-1">{children}</div>

@@ -111,6 +111,14 @@ export type LoginKasirResult = {
   user: { id: string; name: string; role: Role };
 };
 
+export type LoginOwnerResult = {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  user: { id: string; email: string; name: string; role: string; tenantId: string };
+};
+
 export type CartLine = {
   /** Local id — one line per product+variant+modifier combination. */
   key: string;

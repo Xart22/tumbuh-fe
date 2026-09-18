@@ -7,7 +7,13 @@ import {
   setAuthContext,
   setUnauthorizedHandler,
 } from '@/lib/api-client';
-import type { LoginKasirResult, Outlet, PublicStore, Role } from '@/lib/types';
+import { loginOwner } from '@/lib/api';
+import type {
+  LoginKasirResult,
+  Outlet,
+  PublicStore,
+  Role,
+} from '@/lib/types';
 
 export type AuthUser = { id: string; name: string; role: Role };
 
@@ -18,10 +24,15 @@ type AuthState = {
   user: AuthUser | null;
   tenantSlug: string;
   login: (outletId: string, pin: string) => Promise<void>;
+  /** Workspace owner/manager login — session without an outlet scope. */
+  loginOwner: (email: string, password: string) => Promise<void>;
   logout: () => void;
   selectOutlet: (outletId: string, outletName: string) => void;
   setTenantSlug: (slug: string) => void;
+  /** Kasir session: token + outlet bound. */
   isAuthed: () => boolean;
+  /** Any session (kasir or owner): token + user present. */
+  hasSession: () => boolean;
 };
 
 /** Tenant default matches the seeded BE tenant; override on the login screen. */
@@ -57,6 +68,25 @@ export const useAuthStore = create<AuthState>()(
         setAuthContext(result.accessToken, outletId);
       },
 
+      async loginOwner(email, password) {
+        const result = await loginOwner({
+          email,
+          password,
+          tenantSlug: get().tenantSlug.trim(),
+        });
+        set({
+          token: result.accessToken,
+          outletId: null,
+          outletName: null,
+          user: {
+            id: result.user.id,
+            name: result.user.name,
+            role: result.user.role as Role,
+          },
+        });
+        setAuthContext(result.accessToken, null);
+      },
+
       logout() {
         set({ token: null, outletId: null, outletName: null, user: null });
         setAuthContext(null, null);
@@ -73,6 +103,10 @@ export const useAuthStore = create<AuthState>()(
 
       isAuthed() {
         return Boolean(get().token && get().outletId);
+      },
+
+      hasSession() {
+        return Boolean(get().token && get().user);
       },
     }),
     {
