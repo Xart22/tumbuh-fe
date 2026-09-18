@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ownerLoginSchema } from './owner-form';
+import { ownerLoginSchema } from './owner/owner-form';
 
 describe('ownerLoginSchema', () => {
   it('accepts a complete payload', () => {

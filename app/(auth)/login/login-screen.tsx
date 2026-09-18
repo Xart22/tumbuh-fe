@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { LoginForm } from './login-form';
-import { OwnerForm } from './owner-form';
+import { OwnerPanel } from './owner/owner-panel';
 
 type Mode = 'kasir' | 'owner';
 
@@ -14,11 +13,11 @@ export function LoginScreen() {
   const [mode, setMode] = useState<Mode>(initial);
 
   return (
-    <div className="flex w-full max-w-sm flex-col gap-3">
+    <div className="flex w-full flex-col items-center gap-4">
       <div
         role="tablist"
         aria-label="Pilih metode masuk"
-        className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-panel-2 p-1"
+        className="grid w-full max-w-sm grid-cols-2 gap-1 rounded-xl border border-line bg-panel-2 p-1"
       >
         {(
           [
@@ -43,16 +42,7 @@ export function LoginScreen() {
         ))}
       </div>
 
-      {mode === 'kasir' ? <LoginForm /> : <OwnerForm />}
-
-      {mode === 'owner' && (
-        <p className="text-center text-sm text-muted">
-          Belum punya akun usaha?{' '}
-          <Link href="/register" className="font-medium text-teal-500 hover:underline">
-            Daftar
-          </Link>
-        </p>
-      )}
+      {mode === 'kasir' ? <LoginForm /> : <OwnerPanel />}
     </div>
   );
 }

@@ -43,9 +43,10 @@ test('login validates PIN length client-side', async ({ page }) => {
 
 test('login owner tab validates email client-side', async ({ page }) => {
   await page.goto('/login?mode=owner');
-  await expect(page.getByRole('heading', { name: /masuk backoffice/i })).toBeVisible();
-  await page.getByPlaceholder('owner@usaha.com').fill('bukan-email');
-  await page.getByPlaceholder('••••••••').fill('rahasia123');
-  await page.getByRole('button', { name: /^masuk$/i }).click();
+  await expect(page.getByRole('heading', { name: /selamat datang kembali/i })).toBeVisible();
+  await expect(page.getByPlaceholder('kopikita')).toBeVisible();
+  await page.getByPlaceholder('nama@restoran.com').fill('bukan-email');
+  await page.getByPlaceholder('Masukkan kata sandi').fill('rahasia123');
+  await page.getByRole('button', { name: /masuk ke dashboard/i }).click();
   await expect(page.getByText('Email yang valid wajib diisi.')).toBeVisible();
 });
