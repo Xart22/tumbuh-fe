@@ -121,6 +121,13 @@ export function RegisterForm() {
         email: values.email.trim(),
         password: values.password,
         ...(values.phone.trim() ? { phone: values.phone.trim() } : {}),
+        businessType: values.businessType,
+        ...(values.outletName.trim() ? { outletName: values.outletName.trim() } : {}),
+        ...(values.city.trim() ? { city: values.city.trim() } : {}),
+        ...(values.address.trim() ? { address: values.address.trim() } : {}),
+        modulePos: values.modulePos,
+        moduleInventory: values.moduleInventory,
+        moduleShifts: values.moduleShifts,
       });
       setResult(res);
       scrollTop();
@@ -172,7 +179,8 @@ export function RegisterForm() {
                   month: 'long',
                   year: 'numeric',
                 })}
-                ). Outlet pertama dibuat otomatis dari nama brand Anda.
+                ). Outlet pertama <span className="font-mono font-bold text-emerald-700">{result.outlet.name}</span> siap
+                dipakai.
               </p>
               <div className="mx-auto mt-5 max-w-md rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left text-xs text-slate-600">
                 <p className="truncate">

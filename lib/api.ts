@@ -51,6 +51,13 @@ export type RegisterMerchantInput = {
   email: string;
   password: string;
   phone?: string;
+  businessType?: 'cafe' | 'restaurant' | 'qsr' | 'bakery';
+  outletName?: string;
+  city?: string;
+  address?: string;
+  modulePos?: boolean;
+  moduleInventory?: boolean;
+  moduleShifts?: boolean;
 };
 
 export type RegisterMerchantResult = {
@@ -60,6 +67,9 @@ export type RegisterMerchantResult = {
   trialEndsAt: string;
   ownerEmail: string;
   emailVerified: boolean;
+  businessType: string | null;
+  enabledModules: string[];
+  outlet: { id: string; name: string };
 };
 
 /** Public route — creates tenant + owner, no auth header. */
