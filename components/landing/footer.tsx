@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { LOGO_URL, WA_SALES_URL } from './assets';
 import { Icon } from '../icon';
 
@@ -100,9 +101,9 @@ export function Footer() {
         <div className="flex flex-col items-center justify-between gap-4 pt-8 text-xs text-lp-tertiary md:flex-row">
           <p>© 2025 PT Tumbuh Digital Niaga. Seluruh hak cipta dilindungi.</p>
           <div className="flex items-center gap-6">
-            <a href="#" className="transition-colors hover:text-lp-on-surface">Kebijakan Privasi</a>
-            <a href="#" className="transition-colors hover:text-lp-on-surface">Syarat &amp; Ketentuan</a>
-            <a href="#" className="transition-colors hover:text-lp-on-surface">Keamanan Data</a>
+            <Link href="/privacy" className="transition-colors hover:text-lp-on-surface">Kebijakan Privasi</Link>
+            <Link href="/terms" className="transition-colors hover:text-lp-on-surface">Syarat &amp; Ketentuan</Link>
+            <Link href="/privacy" className="transition-colors hover:text-lp-on-surface">Keamanan Data</Link>
             <a href={WA_SALES_URL} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-lp-on-surface">
               Kontak Kami
             </a>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Turnstile } from 'react-turnstile';
 import { useRouter } from 'next/navigation';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -77,14 +78,17 @@ export function RegisterForm() {
   const {
     trigger,
     handleSubmit,
-    setError,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = methods;
 
   const [activeStep, setActiveStep] = useState<1 | 2>(1);
   const [step1Done, setStep1Done] = useState(false);
   const [result, setResult] = useState<RegisterMerchantResult | null>(null);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   // One key per form session: network retries replay the stored tenant
   // instead of provisioning a duplicate.
   const [idempotencyKey] = useState(() => crypto.randomUUID());
@@ -119,6 +123,7 @@ export function RegisterForm() {
   }
 
   const completeOnboarding = handleSubmit(async (values) => {
+    setSubmitError(null);
     try {
       const res = await registerMerchant(
         {
@@ -134,15 +139,14 @@ export function RegisterForm() {
           modulePos: values.modulePos,
           moduleInventory: values.moduleInventory,
           moduleShifts: values.moduleShifts,
+          ...(captchaToken ? { captchaToken } : {}),
         },
         { idempotencyKey },
       );
       setResult(res);
       scrollTop();
     } catch (e) {
-      setError('root.server', {
-        message: e instanceof Error ? e.message : 'Pendaftaran gagal.',
-      });
+      setSubmitError(e instanceof Error ? e.message : 'Pendaftaran gagal.');
     }
   });
 
@@ -345,10 +349,24 @@ export function RegisterForm() {
                           Outlet Siap Pakai
                         </span>
                       </div>
-                      <StepBusiness onBack={() => goToStep(1)} submitting={isSubmitting} />
-                      {errors.root?.server && (
+                      <StepBusiness
+                        onBack={() => goToStep(1)}
+                        submitting={isSubmitting}
+                        captchaSlot={
+                          turnstileSiteKey ? (
+                            <Turnstile
+                              sitekey={turnstileSiteKey}
+                              onVerify={setCaptchaToken}
+                              onExpire={() => setCaptchaToken(null)}
+                              onError={() => setCaptchaToken(null)}
+                              theme="light"
+                            />
+                          ) : null
+                        }
+                      />
+                      {submitError && (
                         <div role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700">
-                          {errors.root.server.message}
+                          {submitError}
                         </div>
                       )}
                     </div>

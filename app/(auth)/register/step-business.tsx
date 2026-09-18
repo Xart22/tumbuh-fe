@@ -10,6 +10,7 @@ import { CITIES, type BusinessType, type RegisterValues } from './types';
 type Props = {
   onBack: () => void;
   submitting: boolean;
+  captchaSlot?: React.ReactNode;
 };
 
 const BUSINESS_TYPES: Array<{
@@ -30,7 +31,7 @@ const MODULES = [
   { key: 'moduleShifts', title: 'Multi-Kasir Shift', desc: 'Laporan closing' },
 ] as const;
 
-export function StepBusiness({ onBack, submitting }: Props) {
+export function StepBusiness({ onBack, submitting, captchaSlot }: Props) {
   const { control, register, watch } = useFormContext<RegisterValues>();
   const [ownerName, email, phone] = watch(['ownerName', 'email', 'phone']);
 
@@ -149,6 +150,8 @@ export function StepBusiness({ onBack, submitting }: Props) {
           <Icon name="edit" className="text-xs" />
         </button>
       </div>
+
+      {captchaSlot && <div className="flex justify-center">{captchaSlot}</div>}
 
       <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 pt-3 sm:flex-row">
         <button

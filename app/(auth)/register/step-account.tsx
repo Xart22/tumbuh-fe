@@ -166,15 +166,15 @@ export function StepAccount({ onNext }: { onNext: () => void }) {
                 </FormControl>
                 <FormLabel className="cursor-pointer text-xs leading-relaxed font-normal text-slate-600">
                   <span>
-                    Saya menyetujui{' '}
-                    <a href="#" className="font-semibold text-emerald-700 underline hover:text-emerald-800">
-                      Syarat &amp; Ketentuan
-                    </a>{' '}
-                    serta{' '}
-                    <a href="#" className="font-semibold text-emerald-700 underline hover:text-emerald-800">
-                      Kebijakan Privasi
-                    </a>{' '}
-                    Tumbuh POS.
+            Saya menyetujui{' '}
+            <Link href="/terms" className="font-semibold text-emerald-700 underline hover:text-emerald-800">
+              Syarat &amp; Ketentuan
+            </Link>{' '}
+            serta{' '}
+            <Link href="/privacy" className="font-semibold text-emerald-700 underline hover:text-emerald-800">
+              Kebijakan Privasi
+            </Link>{' '}
+            Tumbuh POS.
                   </span>
                 </FormLabel>
               </div>

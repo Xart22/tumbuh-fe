@@ -63,9 +63,9 @@ export function OwnerPanel() {
               >
                 Bantuan Kasir
               </a>
-              <a href="#" className="hover:text-slate-600">
+              <Link href="/privacy" className="hover:text-slate-600">
                 Kebijakan Privasi
-              </a>
+              </Link>
             </div>
           </div>
         </div>
