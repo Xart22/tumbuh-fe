@@ -6,6 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
+import { VerifyEmailForm } from '@/components/verify-email-form';
+import { ApiError } from '@/lib/api-client';
 import type { WorkspaceOption } from '@/lib/api';
 import { useAuthStore, WorkspaceChoiceRequired } from '@/stores/auth-store';
 
@@ -38,6 +40,7 @@ export function OwnerLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [options, setOptions] = useState<WorkspaceOption[] | null>(null);
   const [picked, setPicked] = useState('');
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const {
     register,
@@ -59,11 +62,45 @@ export function OwnerLoginForm() {
         setPicked(err.workspaces[0]?.slug ?? '');
         return;
       }
+      if (err instanceof ApiError && err.code === 'EMAILNOTVERIFIED') {
+        setPendingEmail(values.email.trim());
+        return;
+      }
       setError('root.server', {
         message: err instanceof Error ? err.message : 'Login gagal.',
       });
     }
   });
+
+  if (pendingEmail) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-medium text-amber-800">
+          Email ini belum diverifikasi. Masukkan kode 6 digit yang dikirim ke inbox
+          Anda, atau kirim ulang.
+        </div>
+        <VerifyEmailForm
+          email={pendingEmail}
+          onVerified={() => {
+            setPendingEmail(null);
+            // Credentials are still in the form — replay the login attempt.
+            setTimeout(() => void onSubmit(), 60);
+          }}
+          onReset={() => setPendingEmail(null)}
+        />
+        <p className="text-center text-xs text-slate-500">
+          Sudah verifikasi?{' '}
+          <button
+            type="button"
+            onClick={() => setPendingEmail(null)}
+            className="font-bold text-emerald-700 hover:underline"
+          >
+            Coba masuk lagi
+          </button>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-1">

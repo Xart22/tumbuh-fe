@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Icon } from '@/components/icon';
+import { VerifyEmailForm } from '@/components/verify-email-form';
 import { plusJakarta } from '@/lib/fonts';
 import { registerMerchant, type RegisterMerchantResult } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
@@ -83,6 +84,7 @@ export function RegisterForm() {
   const [activeStep, setActiveStep] = useState<1 | 2>(1);
   const [step1Done, setStep1Done] = useState(false);
   const [result, setResult] = useState<RegisterMerchantResult | null>(null);
+  const [emailVerified, setEmailVerified] = useState(false);
   // One key per form session: network retries replay the stored tenant
   // instead of provisioning a duplicate.
   const [idempotencyKey] = useState(() => crypto.randomUUID());
@@ -168,6 +170,7 @@ export function RegisterForm() {
         </header>
 
         {result ? (
+          emailVerified ? (
           <main className="w-full">
             <section className="relative overflow-hidden rounded-3xl border-2 border-emerald-600 bg-white p-6 text-center shadow-xl sm:p-10">
               <div className="absolute left-0 right-0 top-0 h-1.5 bg-emerald-600" />
@@ -207,6 +210,29 @@ export function RegisterForm() {
               </button>
             </section>
           </main>
+          ) : (
+          <main className="w-full">
+            <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-10">
+              <div className="absolute left-0 right-0 top-0 h-1.5 bg-emerald-600" />
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                Verifikasi Email Anda
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Satu langkah lagi — workspace {result.slug} aktif setelah email
+                dikonfirmasi.
+              </p>
+              <div className="mx-auto mt-6 max-w-md">
+                <VerifyEmailForm
+                  email={result.ownerEmail}
+                  onVerified={() => {
+                    setEmailVerified(true);
+                    window.scrollTo({ top: 0 });
+                  }}
+                />
+              </div>
+            </section>
+          </main>
+          )
         ) : (
           <FormProvider {...methods}>
             <form onSubmit={completeOnboarding} noValidate className="w-full">

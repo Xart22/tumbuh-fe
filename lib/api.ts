@@ -21,6 +21,26 @@ import type {
 export type { OwnerLoginResult, WorkspaceOption };
 export { isWorkspaceChoice } from './types';
 
+// --- Email verification ---------------------------------------------------
+
+export type VerifyEmailResult = { slug: string };
+
+export function verifyEmail(input: { email: string; code: string }): Promise<VerifyEmailResult> {
+  return apiFetch<VerifyEmailResult>('/v1/auth/verify-email', {
+    method: 'POST',
+    body: input,
+    outletScoped: false,
+  });
+}
+
+export function resendVerification(email: string): Promise<unknown> {
+  return apiFetch('/v1/auth/resend-verification', {
+    method: 'POST',
+    body: { email },
+    outletScoped: false,
+  });
+}
+
 type PageQuery = { page?: number; limit?: number };
 
 function pageQuery({ page = 1, limit = 100 }: PageQuery): string {
