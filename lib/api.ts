@@ -75,11 +75,15 @@ export type RegisterMerchantResult = {
 /** Public route — creates tenant + owner, no auth header. */
 export function registerMerchant(
   input: RegisterMerchantInput,
+  opts?: { idempotencyKey?: string },
 ): Promise<RegisterMerchantResult> {
   return apiFetch<RegisterMerchantResult>('/v1/onboarding/register', {
     method: 'POST',
     body: input,
     outletScoped: false,
+    headers: opts?.idempotencyKey
+      ? { 'Idempotency-Key': opts.idempotencyKey }
+      : undefined,
   });
 }
 

@@ -83,6 +83,9 @@ export function RegisterForm() {
   const [activeStep, setActiveStep] = useState<1 | 2>(1);
   const [step1Done, setStep1Done] = useState(false);
   const [result, setResult] = useState<RegisterMerchantResult | null>(null);
+  // One key per form session: network retries replay the stored tenant
+  // instead of provisioning a duplicate.
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
 
   function scrollTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -115,20 +118,23 @@ export function RegisterForm() {
 
   const completeOnboarding = handleSubmit(async (values) => {
     try {
-      const res = await registerMerchant({
-        businessName: values.brandName.trim(),
-        ownerName: values.ownerName.trim(),
-        email: values.email.trim(),
-        password: values.password,
-        ...(values.phone.trim() ? { phone: values.phone.trim() } : {}),
-        businessType: values.businessType,
-        ...(values.outletName.trim() ? { outletName: values.outletName.trim() } : {}),
-        ...(values.city.trim() ? { city: values.city.trim() } : {}),
-        ...(values.address.trim() ? { address: values.address.trim() } : {}),
-        modulePos: values.modulePos,
-        moduleInventory: values.moduleInventory,
-        moduleShifts: values.moduleShifts,
-      });
+      const res = await registerMerchant(
+        {
+          businessName: values.brandName.trim(),
+          ownerName: values.ownerName.trim(),
+          email: values.email.trim(),
+          password: values.password,
+          ...(values.phone.trim() ? { phone: values.phone.trim() } : {}),
+          businessType: values.businessType,
+          ...(values.outletName.trim() ? { outletName: values.outletName.trim() } : {}),
+          ...(values.city.trim() ? { city: values.city.trim() } : {}),
+          ...(values.address.trim() ? { address: values.address.trim() } : {}),
+          modulePos: values.modulePos,
+          moduleInventory: values.moduleInventory,
+          moduleShifts: values.moduleShifts,
+        },
+        { idempotencyKey },
+      );
       setResult(res);
       scrollTop();
     } catch (e) {

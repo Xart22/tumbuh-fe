@@ -64,6 +64,8 @@ type FetchOptions = {
   body?: unknown;
   /** Adds the Idempotency-Key header; required by POST /orders and /payments. */
   idempotencyKey?: string;
+  /** Extra headers (e.g. Idempotency-Key for onboarding retries). */
+  headers?: Record<string, string>;
   /** Send the X-Outlet-Id header. Off only for tenant-wide routes. */
   outletScoped?: boolean;
   signal?: AbortSignal;
@@ -80,7 +82,10 @@ function sleep(ms: number): Promise<void> {
 
 async function doFetch<T>(path: string, options: FetchOptions): Promise<T> {
   const method = options.method ?? 'GET';
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...options.headers,
+  };
   if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
   if (options.outletScoped !== false && currentOutletId) {
     headers['X-Outlet-Id'] = currentOutletId;
