@@ -1,7 +1,22 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/aida/**',
+      },
+    ],
+  },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Sourcemap upload stays off until SENTRY_ORG/PROJECT/AUTH_TOKEN exist;
+  // error reporting via DSN works without them.
+  sourcemaps: { disable: true },
+  silent: true,
+  telemetry: false,
+});

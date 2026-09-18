@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
@@ -32,9 +34,17 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# local working docs & assistant tooling (not part of the product)
+claude copy.md
+plans/
+.roo/
+.agents/
+skills-lock.json
 
 # typescript
 *.tsbuildinfo

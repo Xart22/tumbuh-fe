@@ -1,26 +1,168 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+@theme {
+  --color-surface: #f7f7f8;
+  --color-panel: #ffffff;
+  --color-panel-2: #f1f2f4;
+  --color-line: #e3e5e9;
+  --color-ink: #14161a;
+  --color-muted: #6b7280;
+  --color-brand: #0f766e;
+  --color-brand-ink: #ffffff;
+  --color-danger: #dc2626;
+  --color-success: #16a34a;
+  --color-warn: #d97706;
+
+  /* shadcn theme (light). Brand primary maps to emerald so shadcn
+     primitives match Tumbuh identity out of the box.
+     NOTE: --color-muted is intentionally NOT defined here — the POS shell
+     owns `muted` as gray body text (45+ usages). shadcn components added
+     so far avoid `*-muted` backgrounds; `muted-foreground` below is safe. */
+  --color-background: var(--color-white);
+  --color-foreground: var(--color-slate-900);
+  --color-card: var(--color-white);
+  --color-card-foreground: var(--color-slate-900);
+  --color-popover: var(--color-white);
+  --color-popover-foreground: var(--color-slate-900);
+  --color-primary: var(--color-emerald-600);
+  --color-primary-foreground: var(--color-white);
+  --color-secondary: var(--color-slate-100);
+  --color-secondary-foreground: var(--color-slate-900);
+  --color-muted-foreground: var(--color-slate-500);
+  --color-accent: var(--color-slate-100);
+  --color-accent-foreground: var(--color-slate-900);
+  --color-destructive: var(--color-rose-600);
+  --color-destructive-foreground: var(--color-white);
+  --color-border: var(--color-slate-200);
+  --color-input: var(--color-slate-300);
+  --color-ring: var(--color-emerald-600);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Landing palette (light marketing page; `lp-` prefix keeps the dark
+     POS shell tokens untouched). Values mirror the approved design. */
+  --font-lp-sans: var(--font-landing-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-lp-mono: var(--font-landing-mono), ui-monospace, monospace;
+
+  --color-lp-primary: #059669;
+  --color-lp-primary-container: #00855d;
+  --color-lp-primary-fixed: #85f8c4;
+  --color-lp-primary-fixed-dim: #68dba9;
+  --color-lp-on-primary: #ffffff;
+  --color-lp-on-primary-container: #f5fff7;
+  --color-lp-secondary: #855300;
+  --color-lp-secondary-container: #fea619;
+  --color-lp-on-secondary: #ffffff;
+  --color-lp-on-secondary-container: #684000;
+  --color-lp-surface: #f8f9ff;
+  --color-lp-surface-low: #eff4ff;
+  --color-lp-surface-container: #e5eeff;
+  --color-lp-surface-container-lowest: #ffffff;
+  --color-lp-surface-container-high: #dce9ff;
+  --color-lp-background: #f8f9ff;
+  --color-lp-on-background: #0b1c30;
+  --color-lp-on-surface: #0b1c30;
+  --color-lp-on-surface-variant: #3d4a42;
+  --color-lp-tertiary: #545c72;
+  --color-lp-outline: #6d7a72;
+  --color-lp-outline-variant: #bccac0;
+  --color-lp-error: #ba1a1a;
+  --color-lp-error-container: #ffdad6;
+  --color-lp-on-error: #ffffff;
+}
+
+/* POS runs in dim kitchens and counters: dark is the default, not a toggle. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --surface: #0e1116;
+  --panel: #171b22;
+  --panel-2: #1f242d;
+  --line: #2a303a;
+  --ink: #eef1f5;
+  --muted: #9aa3b0;
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cashiers tap fast; a stray text selection slows the next tap. */
+button {
+  user-select: none;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Browser autofill (Chrome/Safari) ignores `background` and follows the
+   root `color-scheme: dark`, painting filled inputs dark gray. Force the
+   light treatment everywhere so autofilled text stays readable. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #0f172a;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  caret-color: #0f172a;
+}
+
+/* ---- Landing page base (scoped under .landing) ---- */
+
+.landing {
+  background-color: var(--color-lp-background);
+  color: var(--color-lp-on-surface);
+  color-scheme: light;
+}
+
+.landing ::-webkit-scrollbar {
+  width: 8px;
+}
+.landing ::-webkit-scrollbar-track {
+  background: var(--color-lp-background);
+}
+.landing ::-webkit-scrollbar-thumb {
+  background: var(--color-lp-outline-variant);
+  border-radius: 4px;
+}
+
+/* Material Symbols arrives with the FILL axis (see page <link>); filled
+   variant for ratings and other solid glyphs. */
+.lp-icon-fill {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing *,
+  .landing *::before,
+  .landing *::after {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
