@@ -119,6 +119,22 @@ export type LoginOwnerResult = {
   user: { id: string; email: string; name: string; role: string; tenantId: string };
 };
 
+export type WorkspaceOption = { slug: string; name: string };
+
+/** Multi-workspace email: pick one, then retry login with its slug. */
+export type WorkspaceChoice = {
+  requiresWorkspace: true;
+  workspaces: WorkspaceOption[];
+};
+
+export type OwnerLoginResult = LoginOwnerResult | WorkspaceChoice;
+
+export function isWorkspaceChoice(
+  result: OwnerLoginResult,
+): result is WorkspaceChoice {
+  return (result as WorkspaceChoice).requiresWorkspace === true;
+}
+
 export type CartLine = {
   /** Local id — one line per product+variant+modifier combination. */
   key: string;

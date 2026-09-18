@@ -4,10 +4,10 @@ import type {
   CreatedOrder,
   DailySummary,
   HourlySalesRow,
-  LoginOwnerResult,
   Modifier,
   ModifierGroup,
   OrderType,
+  OwnerLoginResult,
   Paginated,
   PaymentMethod,
   PaymentResult,
@@ -15,7 +15,11 @@ import type {
   ProductVariant,
   SalesSummary,
   TopProduct,
+  WorkspaceOption,
 } from './types';
+
+export type { OwnerLoginResult, WorkspaceOption };
+export { isWorkspaceChoice } from './types';
 
 type PageQuery = { page?: number; limit?: number };
 
@@ -72,18 +76,27 @@ export function registerMerchant(
 export type OwnerLoginInput = {
   email: string;
   password: string;
-  tenantSlug: string;
+  tenantSlug?: string;
 };
 
-/** Owner/manager password login inside one workspace. */
-export function loginOwner(
+/** Thrown when one email lives in several workspaces — caller shows a picker. */
+export class WorkspaceChoiceRequired extends Error {
+  constructor(readonly workspaces: WorkspaceOption[]) {
+    super('Pilih workspace untuk masuk.');
+    this.name = 'WorkspaceChoiceRequired';
+  }
+}
+
+/** Owner/manager password login. Backend resolves the workspace from email. */
+export async function loginOwner(
   input: OwnerLoginInput,
-): Promise<LoginOwnerResult> {
-  return apiFetch<LoginOwnerResult>('/v1/auth/login', {
+): Promise<OwnerLoginResult> {
+  const result = await apiFetch<OwnerLoginResult>('/v1/auth/login', {
     method: 'POST',
     body: input,
     outletScoped: false,
   });
+  return result;
 }
 
 // --- Menu -----------------------------------------------------------------

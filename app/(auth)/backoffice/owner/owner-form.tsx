@@ -6,10 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
-import { useAuthStore } from '@/stores/auth-store';
+import type { WorkspaceOption } from '@/lib/api';
+import { useAuthStore, WorkspaceChoiceRequired } from '@/stores/auth-store';
 
 export const ownerLoginSchema = z.object({
-  workspace: z.string().trim().min(1, 'Workspace wajib diisi.'),
   email: z.string().trim().min(1, 'Email wajib diisi.').email('Email yang valid wajib diisi.'),
   password: z.string().min(1, 'Password wajib diisi.'),
 });
@@ -34,10 +34,10 @@ function FieldError({ message }: { message?: string }) {
 /** Owner credential fields + submit. Layout (card columns) lives in OwnerPanel. */
 export function OwnerLoginForm() {
   const router = useRouter();
-  const tenantSlug = useAuthStore((s) => s.tenantSlug);
-  const setTenantSlug = useAuthStore((s) => s.setTenantSlug);
   const loginOwner = useAuthStore((s) => s.loginOwner);
   const [showPassword, setShowPassword] = useState(false);
+  const [options, setOptions] = useState<WorkspaceOption[] | null>(null);
+  const [picked, setPicked] = useState('');
 
   const {
     register,
@@ -47,15 +47,18 @@ export function OwnerLoginForm() {
   } = useForm<OwnerLoginValues>({
     mode: 'onTouched',
     resolver: zodResolver(ownerLoginSchema),
-    defaultValues: { workspace: tenantSlug, email: '', password: '' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      setTenantSlug(values.workspace.trim());
-      await loginOwner(values.email.trim(), values.password);
+      await loginOwner(values.email.trim(), values.password, picked || undefined);
       router.replace('/reports');
     } catch (err) {
+      if (err instanceof WorkspaceChoiceRequired) {
+        setOptions(err.workspaces);
+        setPicked(err.workspaces[0]?.slug ?? '');
+        return;
+      }
       setError('root.server', {
         message: err instanceof Error ? err.message : 'Login gagal.',
       });
@@ -64,27 +67,6 @@ export function OwnerLoginForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-1">
-      <div>
-        <label htmlFor="owner-workspace" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
-          Workspace
-        </label>
-        <div className="relative">
-          <input
-            id="owner-workspace"
-            {...register('workspace')}
-            placeholder="kopikita"
-            autoComplete="off"
-            aria-invalid={!!errors.workspace}
-            className={inputCls}
-          />
-          <Icon
-            name="store"
-            className="pointer-events-none absolute right-3.5 top-3 text-[20px] text-slate-400"
-          />
-        </div>
-        <FieldError message={errors.workspace?.message} />
-      </div>
-
       <div>
         <label htmlFor="owner-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
           Email Bisnis
@@ -144,6 +126,39 @@ export function OwnerLoginForm() {
         <FieldError message={errors.password?.message} />
       </div>
 
+      {options && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-800">
+            Email ini terdaftar di {options.length} workspace — pilih satu:
+          </p>
+          <div className="flex flex-col gap-2" role="radiogroup" aria-label="Pilih workspace">
+            {options.map((ws) => (
+              <label
+                key={ws.slug}
+                className={`flex cursor-pointer items-center gap-2.5 rounded-xl border bg-white p-2.5 transition ${
+                  picked === ws.slug
+                    ? 'border-emerald-600 ring-1 ring-emerald-600/30'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="workspace-pick"
+                  value={ws.slug}
+                  checked={picked === ws.slug}
+                  onChange={() => setPicked(ws.slug)}
+                  className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span className="text-left">
+                  <span className="block text-xs font-bold text-slate-900">{ws.name}</span>
+                  <span className="block font-mono text-[11px] text-slate-500">{ws.slug}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {errors.root?.server && (
         <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700">
           {errors.root.server.message}
@@ -156,7 +171,7 @@ export function OwnerLoginForm() {
           disabled={isSubmitting}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-md shadow-emerald-600/25 transition hover:bg-emerald-700 active:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <span>{isSubmitting ? 'Memeriksa…' : 'Masuk ke Dashboard Backoffice'}</span>
+          <span>{isSubmitting ? 'Memeriksa…' : options ? 'Masuk ke Workspace' : 'Masuk ke Dashboard Backoffice'}</span>
           <Icon name="arrow_forward" className="text-base" />
         </button>
       </div>

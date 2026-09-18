@@ -12,7 +12,7 @@ export default function LoginPage() {
           <LoginForm />
           <p className="text-center text-sm text-muted">
             Owner atau manager?{' '}
-            <Link href="/owner-login" className="font-medium text-teal-500 hover:underline">
+            <Link href="/backoffice" className="font-medium text-teal-500 hover:underline">
               Masuk Backoffice
             </Link>
           </p>

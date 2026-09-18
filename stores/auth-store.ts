@@ -7,7 +7,8 @@ import {
   setAuthContext,
   setUnauthorizedHandler,
 } from '@/lib/api-client';
-import { loginOwner } from '@/lib/api';
+import { loginOwner, WorkspaceChoiceRequired } from '@/lib/api';
+export { WorkspaceChoiceRequired };
 import type {
   LoginKasirResult,
   Outlet,
@@ -25,7 +26,7 @@ type AuthState = {
   tenantSlug: string;
   login: (outletId: string, pin: string) => Promise<void>;
   /** Workspace owner/manager login — session without an outlet scope. */
-  loginOwner: (email: string, password: string) => Promise<void>;
+  loginOwner: (email: string, password: string, tenantSlug?: string) => Promise<void>;
   logout: () => void;
   selectOutlet: (outletId: string, outletName: string) => void;
   setTenantSlug: (slug: string) => void;
@@ -68,12 +69,12 @@ export const useAuthStore = create<AuthState>()(
         setAuthContext(result.accessToken, outletId);
       },
 
-      async loginOwner(email, password) {
-        const result = await loginOwner({
-          email,
-          password,
-          tenantSlug: get().tenantSlug.trim(),
-        });
+      async loginOwner(email, password, tenantSlug?) {
+        const result = await loginOwner({ email, password, tenantSlug });
+        if (!('accessToken' in result)) {
+          throw new WorkspaceChoiceRequired(result.workspaces);
+        }
+        if (tenantSlug) set({ tenantSlug: tenantSlug.trim().toLowerCase() });
         set({
           token: result.accessToken,
           outletId: null,
