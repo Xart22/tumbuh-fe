@@ -133,7 +133,7 @@ export function RegisterForm() {
 
   function goToLogin() {
     if (result) setTenantSlug(result.slug);
-    router.replace('/login');
+    router.replace('/owner-login');
   }
 
   return (

@@ -21,6 +21,7 @@ app/
   page.tsx                 # / landing publik
   not-found.tsx / error.tsx / global-error.tsx
   (auth)/login             # /login  (PIN kasir per outlet)
+  (auth)/owner-login        # /owner-login (email+password owner/manager)
   (auth)/register          # /register (wizard 2 langkah, colocated components)
   (pos)/pos                # /pos (butuh login, layout + AppNav sendiri)
   (backoffice)/reports     # /reports (butuh login)
