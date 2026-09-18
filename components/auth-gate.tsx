@@ -23,10 +23,13 @@ export function AuthGate({
   children,
   requireAuth = true,
   requireOutlet = true,
+  loginPath = '/login',
 }: {
   children: React.ReactNode;
   requireAuth?: boolean;
   requireOutlet?: boolean;
+  /** Where to send sessions that fail the gate (POS uses /kasir). */
+  loginPath?: string;
 }) {
   const router = useRouter();
   const token = useAuthStore((s) => s.token);
@@ -55,11 +58,11 @@ export function AuthGate({
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!allowed) router.replace('/login');
+    if (!allowed) router.replace(loginPath);
     else if (!requireAuth && session) {
       router.replace(outletOk ? '/pos' : '/reports');
     }
-  }, [hydrated, allowed, session, outletOk, requireAuth, router]);
+  }, [hydrated, allowed, session, outletOk, requireAuth, loginPath, router]);
 
   if (!hydrated) return <Splash label="Memuat…" />;
   if (!allowed) {

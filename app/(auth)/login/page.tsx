@@ -1,22 +1,16 @@
-import Link from 'next/link';
 import { AuthGate } from '@/components/auth-gate';
-import { LoginForm } from './login-form';
+import { OwnerPanel } from './owner/owner-panel';
 
-export const metadata = { title: 'Masuk Kasir · Tumbuh POS' };
+export const metadata = {
+  title: 'Masuk · Tumbuh POS',
+  description: 'Masuk dashboard untuk owner dan manager usaha F&B.',
+};
 
 export default function LoginPage() {
   return (
     <AuthGate requireAuth={false}>
-      <main className="flex min-h-screen items-center justify-center p-4">
-        <div className="flex w-full max-w-sm flex-col gap-3">
-          <LoginForm />
-          <p className="text-center text-sm text-muted">
-            Owner atau manager?{' '}
-            <Link href="/backoffice" className="font-medium text-teal-500 hover:underline">
-              Masuk Backoffice
-            </Link>
-          </p>
-        </div>
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4 sm:p-8">
+        <OwnerPanel />
       </main>
     </AuthGate>
   );

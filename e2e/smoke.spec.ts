@@ -33,16 +33,16 @@ test('register wizard validates step 1 inline then advances', async ({ page }) =
   ).toBeVisible();
 });
 
-test('login validates PIN length client-side', async ({ page }) => {
-  await page.goto('/login');
+test('kasir login validates PIN length client-side', async ({ page }) => {
+  await page.goto('/kasir');
   await expect(page.getByText('PIN Kasir', { exact: true })).toBeVisible();
   await page.getByPlaceholder('••••').fill('12');
   await page.getByRole('button', { name: /^masuk$/i }).click();
   await expect(page.getByText('PIN minimal 4 digit.')).toBeVisible();
 });
 
-test('backoffice login validates email client-side', async ({ page }) => {
-  await page.goto('/backoffice');
+test('owner login validates email client-side', async ({ page }) => {
+  await page.goto('/login');
   await expect(page.getByRole('heading', { name: /selamat datang kembali/i })).toBeVisible();
   await page.getByPlaceholder('nama@restoran.com').fill('bukan-email');
   await page.getByPlaceholder('Masukkan kata sandi').fill('rahasia123');

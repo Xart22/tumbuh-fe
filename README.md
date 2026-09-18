@@ -20,8 +20,8 @@ npm test                     # unit test lib/*
 app/
   page.tsx                 # / landing publik
   not-found.tsx / error.tsx / global-error.tsx
-  (auth)/login             # /login  (PIN kasir per outlet)
-  (auth)/backoffice        # /backoffice (email+password owner/manager)
+  (auth)/login             # /login  (email+password owner/manager)
+  (auth)/kasir             # /kasir  (PIN kasir per outlet)
   (auth)/register          # /register (wizard 2 langkah, colocated components)
   (pos)/pos                # /pos (butuh login, layout + AppNav sendiri)
   (backoffice)/reports     # /reports (butuh login)

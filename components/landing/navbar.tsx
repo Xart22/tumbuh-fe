@@ -38,7 +38,7 @@ export function Navbar() {
         </nav>
         <div className="flex items-center gap-3">
           <Link
-            href="/backoffice"
+            href="/login"
             className="hidden items-center justify-center rounded-xl border border-lp-outline-variant bg-white px-4 py-2.5 text-sm font-semibold text-lp-on-surface shadow-sm transition-all hover:bg-lp-surface-low sm:inline-flex"
           >
             Masuk Backoffice

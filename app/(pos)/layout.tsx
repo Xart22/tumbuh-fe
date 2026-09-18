@@ -10,7 +10,7 @@ export default function PosLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGate>
+    <AuthGate loginPath="/kasir">
       <div className="flex min-h-screen flex-col">
         <AppNav />
         <div className="flex-1">{children}</div>
