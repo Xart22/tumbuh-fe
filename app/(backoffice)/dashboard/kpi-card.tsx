@@ -7,7 +7,7 @@ export function Delta({ pct }: { pct: number | null }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-        // Tokens per DESIGN.md §2.1/§2.4 — dark-on-tint, both AA at 11px.
+        // Tokens per DESIGN.md Colors — dark-on-tint, both AA at 11px.
         up
           ? 'bg-lp-primary-fixed/40 text-lp-on-primary-fixed'
           : 'bg-lp-error-container text-lp-on-error-container'

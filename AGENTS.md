@@ -14,7 +14,7 @@ Next.js 16 + React 19 + Tailwind v4 + RHF/zod + shadcn (manual) + TanStack Query
 
 ## Read first
 
-1. **Any UI work** → read [`DESIGN.md`](DESIGN.md) (colors, type scale, radius, elevation, F&B component patterns, pre-delivery checklist). It is the Single Source of Truth; this file only carries repo-specific rules.
+1. **Any UI work** → read [`DESIGN.md`](DESIGN.md) (brand & style, colors, typography, layout & spacing, elevation & depth, shapes, component patterns). It is the Single Source of Truth; this file only carries repo-specific rules.
 2. **Next.js APIs/conventions** → `node_modules/next/dist/docs/` (see the block above).
 3. **Skills** in `.agents/skills/` (`next-best-practices`, `ui-ux-pro-max`) — load the matching one before UI or routing work.
 
@@ -34,10 +34,11 @@ The terminal tool runs `pwsh`. No heredocs (`<<EOF` fails), no `<` stdin redirec
 ## Design system rules (enforced)
 
 - **Never add design tokens to [`app/globals.css`](app/globals.css) for a single page.** The `lp-*` palette is complete; compose with the existing tokens. A new token needs a `DESIGN.md` entry first.
+- **Not every `DESIGN.md` colour is an `lp-*` utility.** Only names defined in `app/globals.css` compile; the rest silently emit nothing. `surface-container-low` (`#eff4ff`) is `lp-surface-low` — there is no `lp-surface-container-low` — and `on-primary-fixed-variant` / `secondary-fixed` have no token yet, so use `lp-on-primary-fixed` / `lp-secondary-container`. Check with `rg -o "lp-[a-z0-9-]+" app/globals.css` before reaching for a new one.
 - **Never invent a spacing/typography scale.** Tailwind v4 here has no `tailwind.config`; hex scales like `p-space-md`, `gap-gutter`, `mt-margin-lg` from external mockups compile to **nothing** (verified: `padding: 0px, gap: normal`). Translate them to numeric utilities (`p-4`, `gap-2`, `pb-6`) — this is exactly how the owner dashboard first shipped broken.
 - **Raw hex is banned in components.** Use `bg-lp-*` / `text-lp-*` / `border-lp-*`. The only exception is the dark POS shell's `var(--surface|panel|panel-2|line|ink|muted)` tokens.
 - **Money, quantities, margins, codes → `font-lp-mono`.** Headings, labels, buttons, prose → `font-lp-sans` (via `font-lp-sans` on the light-page root). Never mono for narrative text.
-- **Status color is a signal, not decoration** — [`DESIGN.md`](DESIGN.md) §2.4 pairs it to Cash-drawer/HPP/stock semantics. Don't restyle a `Critical` as `Info`.
+- **Status color is a signal, not decoration** — [`DESIGN.md`](DESIGN.md) `Colors` gives `error` its operational meaning; this repo pairs the signal to Cash-drawer/HPP/stock semantics. Don't restyle a `Critical` as `Info`.
 - **Contrast**: no green-on-mint, no red-on-pink. Dark tone goes on the light tint (`on-primary-fixed` on `primary-fixed`, `on-error-container` on `error-container`). 11px labels need weight ≥600.
 - **Touch targets ≥44px** (`h-11`) on POS and backoffice toolbars; icon-only buttons need `aria-label`; icons come from [`components/icon.tsx`](components/icon.tsx), never emoji.
 - **Reuse primitives before writing markup**: shadcn [`components/ui/button.tsx`](components/ui/button.tsx) (`asChild` + `Link` for link-buttons) for light pages, [`components/pos-ui.tsx`](components/pos-ui.tsx) for dark POS. Don't hand-roll a styled `<Link>` next to a `Button`.

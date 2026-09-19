@@ -39,8 +39,9 @@ stores/                    # zustand: auth-store, cart-store
 ## Konvensi (ringkas)
 
 * **Design system**: [`DESIGN.md`](DESIGN.md) adalah Single Source of Truth
-  (palet, type scale, radius, elevation, pola komponen F&B, checklist pra-kirim).
-  Baca sebelum menulis UI. Aturan spesifik repo ada di [`AGENTS.md`](AGENTS.md).
+  (brand & style, warna, tipografi, layout & spacing, elevation, shapes, pola
+  komponen). Baca sebelum menulis UI. Aturan spesifik repo ada di
+  [`AGENTS.md`](AGENTS.md).
 * **Form predefined**: `react-hook-form` + `zod` (`zodResolver`). Schema colocated
   dengan route; error inline per field.
 * **UI**: halaman terang (auth/landing) pakai shadcn `components/ui`;
