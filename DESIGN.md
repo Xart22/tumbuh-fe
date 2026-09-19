@@ -1,286 +1,242 @@
-# Tumbuh POS & Backoffice — Design System Specification
-
-> **Single Source of Truth** untuk seluruh implementasi UI Tumbuh POS & Backoffice.
-> Baca ini sebelum menulis komponen atau styling apa pun.
-> Implementasi konkret (file, token, helper) ada di [§7 Mapping ke kode](#7-mapping-ke-kode).
-
-Cakupan: POS kasir, backoffice (dashboard owner, laporan, inventori, resep/HPP,
-keuangan, multi-outlet), dan landing/marketing.
-
+---
+name: Tumbuh POS & Backoffice
+colors:
+  surface: '#f8f9ff'
+  surface-dim: '#cbdbf5'
+  surface-bright: '#f8f9ff'
+  surface-container-lowest: '#ffffff'
+  surface-container-low: '#eff4ff'
+  surface-container: '#e5eeff'
+  surface-container-high: '#dce9ff'
+  surface-container-highest: '#d3e4fe'
+  on-surface: '#0b1c30'
+  on-surface-variant: '#3d4a42'
+  inverse-surface: '#213145'
+  inverse-on-surface: '#eaf1ff'
+  outline: '#6d7a72'
+  outline-variant: '#bccac0'
+  surface-tint: '#006c4a'
+  primary: '#006948'
+  on-primary: '#ffffff'
+  primary-container: '#00855d'
+  on-primary-container: '#f5fff7'
+  inverse-primary: '#68dba9'
+  secondary: '#855300'
+  on-secondary: '#ffffff'
+  secondary-container: '#fea619'
+  on-secondary-container: '#684000'
+  tertiary: '#545c72'
+  on-tertiary: '#ffffff'
+  tertiary-container: '#6c748b'
+  on-tertiary-container: '#fefcff'
+  error: '#ba1a1a'
+  on-error: '#ffffff'
+  error-container: '#ffdad6'
+  on-error-container: '#93000a'
+  primary-fixed: '#85f8c4'
+  primary-fixed-dim: '#68dba9'
+  on-primary-fixed: '#002114'
+  on-primary-fixed-variant: '#005137'
+  secondary-fixed: '#ffddb8'
+  secondary-fixed-dim: '#fdb965'
+  on-secondary-fixed: '#2a1700'
+  on-secondary-fixed-variant: '#653e00'
+  tertiary-fixed: '#dae2fc'
+  tertiary-fixed-dim: '#bec6e0'
+  on-tertiary-fixed: '#131b2e'
+  on-tertiary-fixed-variant: '#3e465b'
+  background: '#f8f9ff'
+  on-background: '#0b1c30'
+  surface-variant: '#d3e4fe'
+  surface-low: '#eff4ff'
+  error-surface: '#fef2f2'
+  error-border: '#fecaca'
+typography:
+  display-lg:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 48px
+    fontWeight: '800'
+    lineHeight: '1.15'
+    letterSpacing: -0.025em
+  display-lg-mobile:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 30px
+    fontWeight: '800'
+    lineHeight: '1.2'
+    letterSpacing: -0.02em
+  headline-lg:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 36px
+    fontWeight: '700'
+    lineHeight: '1.2'
+    letterSpacing: -0.02em
+  headline-lg-mobile:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 24px
+    fontWeight: '700'
+    lineHeight: '1.25'
+    letterSpacing: -0.01em
+  headline-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 20px
+    fontWeight: '700'
+    lineHeight: '1.3'
+  title-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 16px
+    fontWeight: '600'
+    lineHeight: '1.4'
+  body-lg:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 18px
+    fontWeight: '400'
+    lineHeight: '1.6'
+  body-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 14px
+    fontWeight: '400'
+    lineHeight: '1.5'
+  body-sm:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 12px
+    fontWeight: '400'
+    lineHeight: '1.5'
+  label-caps:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 12px
+    fontWeight: '700'
+    lineHeight: '1.4'
+    letterSpacing: 0.08em
+  mono-metric-lg:
+    fontFamily: JetBrains Mono
+    fontSize: 32px
+    fontWeight: '800'
+    lineHeight: '1.1'
+  mono-metric-md:
+    fontFamily: JetBrains Mono
+    fontSize: 18px
+    fontWeight: '700'
+    lineHeight: '1.2'
+  mono-metric-sm:
+    fontFamily: JetBrains Mono
+    fontSize: 11px
+    fontWeight: '700'
+    lineHeight: '1.2'
+rounded:
+  sm: 0.25rem
+  DEFAULT: 0.5rem
+  md: 0.75rem
+  lg: 1rem
+  xl: 1.5rem
+  full: 9999px
+spacing:
+  gutter: 2rem
+  gutter-mobile: 1rem
+  margin: 1.5rem
+  margin-desktop: 2rem
+  space-2xs: 0.25rem
+  space-xs: 0.375rem
+  space-sm: 0.5rem
+  space-md: 0.75rem
+  space-base: 1rem
+  space-lg: 1.5rem
+  space-xl: 2rem
+  space-2xl: 3rem
+  space-3xl: 5rem
 ---
 
-## 1. Prinsip Desain
-
-- **Brand essence** — Pertumbuhan (*Growth*), Presisi Finansial (*Accuracy*), Kecepatan Operasional (*Speed & Reliability*).
-- **Domain** — F&B Indonesia: kafe, coffee shop, bistro, restoran dine-in, bakery & pastry, quick service.
-- **High visibility** — kontras tinggi; UI dibaca di kafe remang dan dapur sibuk, bukan di ruang designer.
-- **Data clarity** — teks naratif dan angka akuntansi/inventori dipisah tegas (font berbeda, lihat §3).
-- **Touch first** — operator kasir memakai tablet; target sentuh ≥44px.
-
----
-
-## 2. Warna
-
-Token di kode berprefix `lp-` untuk namespace landing/backoffice **light**
-(`--color-lp-*` di [`app/globals.css`](app/globals.css)). POS gelap punya
-namespace sendiri (`--surface`, `--panel`, `--ink`, `--muted`) — lihat §7.2.
-
-### 2.1 Primary & Brand (Emerald Growth)
-
-| Token | Hex | Pemakaian | Utility |
-|---|---|---|---|
-| `primary` | `#059669` | CTA utama, status aktif, link aktif | `lp-primary` |
-| `primary-container` | `#00855d` | Hover CTA, container aksen sekunder | `lp-primary-container` |
-| `primary-fixed` | `#85f8c4` | Pill badge aktif, chip highlight lembut, badge "Paling Populer" | `lp-primary-fixed` |
-| `primary-fixed-dim` | `#68dba9` | Border & highlight sekunder | `lp-primary-fixed-dim` |
-| `on-primary` | `#ffffff` | Teks di atas primary | `lp-on-primary` |
-| `on-primary-container` | `#f5fff7` | Teks di atas container emerald pekat | `lp-on-primary-container` |
-| `on-primary-fixed` | `#002114` | Teks gelap di atas `primary-fixed` | `lp-on-primary-fixed` |
-
-### 2.2 Neutral Surfaces
-
-| Token | Hex | Pemakaian | Utility |
-|---|---|---|---|
-| `background` | `#f8f9ff` | Latar global aplikasi | `lp-background` |
-| `surface` | `#f8f9ff` | Permukaan konten dasar | `lp-surface` |
-| `surface-container-lowest` | `#ffffff` | Kartu utama, modal, input | `lp-surface-container-lowest` |
-| `surface-container-low` | `#eff4ff` | Section komparasi, striping tabel, panel filter | `lp-surface-low` |
-| `surface-container` | `#e5eeff` | Input focus, badge kategori sekunder | `lp-surface-container` |
-| `surface-container-high` | `#dce9ff` | Hover elemen sekunder | `lp-surface-container-high` |
-| `surface-container-highest` | `#d3e4fe` | Placeholder, divider tebal, disabled | `lp-surface-container-highest` |
-| `inverse-surface` | `#213145` | Footer gelap, elemen dark theme | `lp-inverse-surface` |
-| `inverse-on-surface` | `#eaf1ff` | Teks di atas surface gelap | `lp-inverse-on-surface` |
-
-### 2.3 Teks & Kontras
-
-| Token | Hex | Pemakaian | Utility |
-|---|---|---|---|
-| `on-background` | `#0b1c30` | Teks utama (Deep Navy) | `lp-on-background` |
-| `on-surface` | `#0b1c30` | Heading, judul kartu, label form | `lp-on-surface` |
-| `on-surface-variant` | `#3d4a42` | Deskripsi sekunder, subtitle, help text | `lp-on-surface-variant` |
-| `tertiary` | `#545c72` | Metadata, label eyebrow | `lp-tertiary` |
-| `outline` | `#6d7a72` | Border form aktif, divider sekunder | `lp-outline` |
-| `outline-variant` | `#bccac0` | Border kartu subtle, garis tabel | `lp-outline-variant` |
+## Brand & Style
 
-### 2.4 Status & Indikator Finansial
+Tumbuh POS embodies a **Modern SaaS with Precision-Driven F&B Reliability** aesthetic. Designed for culinary operators, cafe owners, and hospitality managers across Indonesia, the brand voice conveys financial accuracy, effortless operational flow, and high operational trust.
 
-Ini bagian paling domain-spesifik: warna = sinyal operasional, bukan dekorasi.
+The visual style blends crisp modern SaaS conventions with soft, accessible touches:
+- **Clean SaaS & Operational Dashboarding**: Clear typographic scales and structured card layouts ensure inventory numbers, cost of goods sold (HPP), and sales totals are instantly scannable.
+- **Organic Warmth**: Emerald green (`#059669`) serves as the core trust driver (signifying profit and freshness), paired with warm amber accents (`#855300` / `#fea619`) that evoke roasted coffee and artisanal bakery qualities.
+- **Modern Micro-Details**: Subtle frosted glass navigation headers (`backdrop-blur-md`), pill-shaped badges, and soft, low-contrast container boundaries maintain a fresh, lightweight footprint without visual clutter.
 
-| Status | Background | Foreground | Utility | Sinyal di F&B POS |
-|---|---|---|---|---|
-| **Success** | `lp-primary-fixed` / `#ecfdf5` | `#059669` | `bg-lp-primary-fixed/40 text-lp-on-primary-fixed` | Selisih kas Rp 0, POS online, margin >65% |
-| **Warning / Amber** | `lp-secondary-container` `#fea619` | `#855300` | `bg-lp-secondary-container text-lp-secondary` | Stok mendekati minimum, HPP naik, paket rekomendasi |
-| **Critical / Error** | `lp-error-container` `#ffdad6` | `lp-on-error-container` `#93000a` | `bg-lp-error-container text-lp-on-error-container` | Stok habis, selisih kas, transaksi void |
-| **Info / Tertiary** | `lp-surface-container` `#e5eeff` | `lp-tertiary` `#545c72` | `bg-lp-surface-container text-lp-tertiary` | Notifikasi fitur, info sinkronisasi cloud |
-
-Token amber/error yang tersedia: `lp-secondary` `#855300`,
-`lp-secondary-container` `#fea619`, `lp-on-secondary-container` `#684000`,
-`lp-error` `#ba1a1a`, `lp-error-container` `#ffdad6`, `lp-on-error-container` `#93000a`.
-
-> **Aturan kontras** — jangan pasang teks hijau di atas mint atau merah di atas
-> pink. Pasangan aman: `on-primary-fixed` / `on-error-container` (gelap di atas
-> tint terang). Semua teks body ≥4.5:1; label 11px harus weight ≥600.
-
----
-
-## 3. Tipografi
-
-Dua keluarga, pairing terstandarisasi — Plus Jakarta Sans untuk seluruh teks UI,
-JetBrains Mono **hanya** untuk angka.
-
-1. **Plus Jakarta Sans** — heading, navigasi, label form, tombol, paragraf.
-2. **JetBrains Mono** — Rupiah (IDR), gramatur bahan (gr/ml/kg), persentase
-   margin, SKU/barcode, jam & tanggal pada header data.
-
-Wajib pakai mono untuk: nilai uang, kuantitas terukur, persentase margin,
-kode produk. Dilarang untuk: judul, label, deskripsi, tombol.
-
-### 3.1 Type Scale
-
-| Gaya | Font | Size | Weight | LH | Pemakaian |
-|---|---|---|---|---|---|
-| `display-lg` | Jakarta | 36–48px | 800–900 | 1.15–1.2 | Hero landing |
-| `headline-lg` | Jakarta | 24–28px | 700 | 1.25 | Judul halaman backoffice, judul section |
-| `headline-md` | Jakarta | 18–20px | 600–700 | 1.3 | Judul kartu metrik, nama menu, nama outlet |
-| `headline-sm` | Jakarta | 16px | 600 | 1.4 | Subjudul grup form, nama kolom tabel |
-| `body-lg` | Jakarta | 16px | 400–500 | 1.5 | Paragraf pengantar, testimoni |
-| `body-md` | Jakarta | 14px | 400–500 | 1.4 | Teks default UI, deskripsi tabel, placeholder |
-| `body-sm` | Jakarta | 12px | 400–500 | 1.3 | Help text, catatan kaki struk, metadata |
-| `label-xs` | Jakarta | 11px | 600 | 1.2 | Chip badge, status indicator |
-| `data-currency-lg` | JetBrains | 24–32px | 700 | 1.1 | Omzet utama, total transaksi |
-| `data-currency` | JetBrains | 14–16px | 600 | 1.2 | Harga menu, subtotal struk, HPP per porsi |
-| `data-mono-sm` | JetBrains | 12px | 500 | 1.2 | Gramatur resep (`18.5 gr`, `120 ml`) |
+## Colors
 
-Base 16px. Body text tidak boleh <12px; 11px hanya untuk chip/label uppercase
-dengan `tracking-wider`.
+The color system is calibrated specifically for financial confidence, clarity under varied lighting conditions (from dim cafe ambiances to bright outdoor counter light), and error prevention:
 
----
+- **Primary (`#059669`) & Primary Container (`#00855d`)**: Represents fiscal health, positive margins, and successful actions. Used for primary CTAs, active highlights, key metrics, and positive verification badges.
+- **Secondary (`#855300`) & Accent Container (`#fea619`)**: Grounded artisanal amber/caramel tones. Used for food-cost ratios, recipe highlights, special tier badges, and auxiliary interactive controls.
+- **Tertiary (`#545c72`)**: Balanced slate-gray used for secondary helper text, metadata labels, and subtle iconography.
+- **Surface Canvas Stack**:
+  - `surface` (`#f8f9ff`): Cool tint base providing crisp contrast against stark white cards.
+  - `surface-container-lowest` (`#ffffff`): The primary card and panel surface.
+  - `surface-low` (`#eff4ff`): Recessed stat tile background and input background.
+  - `surface-container` (`#e5eeff`): Subtle separating borders and inactive slider tracks.
+- **Semantic Feedback**:
+  - `error` (`#ba1a1a`): Marks operational pitfalls, old ways of working, critical alerts, and voids.
 
-## 4. Radius & Elevation
+## Typography
 
-### 4.1 Radius
+The type system relies on **Plus Jakarta Sans** for expressive, human-friendly headings and clear interface labels, paired with **JetBrains Mono** for numerical precision.
 
-| Utility | Nilai | Pemakaian |
-|---|---|---|
-| `rounded-md` | 6px | Tombol kecil, badge angka notifikasi |
-| `rounded-lg` | 8px | Input, select, tombol aksi standar |
-| `rounded-xl` | 12px | Kartu menu kasir, wrapper header tabel, modal |
-| `rounded-2xl` | 16px | **Kartu KPI finansial utama**, widget kalkulator HPP, mockup |
-| `rounded-3xl` | 24px | Banner promosi CTA, hero wrapper |
-| `rounded-full` | 9999px | Avatar, pill button, chip status shift |
-
-### 4.2 Elevation
-
-| Utility | Pemakaian |
-|---|---|
-| `shadow-sm` | Kartu data, input saat focus |
-| `shadow-md` | Dropdown, popover resep bahan |
-| `shadow-lg` | Kartu paket rekomendasi, floating notification |
-| `shadow-xl` | Modal rekonsiliasi kasir, preview struk |
+- **Numerics & Monospace Role**: All critical financial metrics, currency strings (e.g. `Rp 14.820.000`), percentages, inventory quantities, and machine addresses use `JetBrains Mono`. This ensures tabulations align vertically without jitter.
+- **Headings & Body**: `Plus Jakarta Sans` employs extra-bold weights (`800`) for primary displays and titles to anchor content blocks. Body text preserves legibility with generous 1.5–1.6 line heights.
+- **Category Eyebrows**: Section headers feature uppercase tracking badges (`label-caps`) styled with `letterSpacing: 0.08em` for crisp grouping.
 
-Aturan: satu level elevasi per lapisan. Kartu di dalam modal tidak boleh
-`shadow-xl` lagi. Shadow pakai `rgba(0,0,0,0.04)`–`0.08`, bukan hitam pekat.
+## Layout & Spacing
 
----
-
-## 5. Komponen F&B
-
-### 5.1 Tombol
-
-**Primary** — `bg-lp-primary text-lp-on-primary`, `font-bold`, hover
-`bg-lp-primary-container`, radius `rounded-lg` (standar) atau `rounded-xl`
-(CTA), padding `px-4 py-2.5` / CTA `px-6 py-3.5`.
-
-**Secondary/Outline** — background `lp-surface-container-lowest` atau
-`lp-surface-low`, border `border-lp-outline-variant`, teks `lp-on-surface` atau
-`lp-primary`, hover `bg-lp-surface-container`.
-
-Touch target minimum 44px (`h-11`) untuk semua tombol di POS dan toolbar
-backoffice. Tombol ikon-saja wajib `aria-label`.
+The layout is built around a responsive 12-column grid container capped at `max-w-7xl` (80rem / 1280px) with centered alignment:
 
-Implementasi: [`components/ui/button.tsx`](components/ui/button.tsx) (light),
-[`components/pos-ui.tsx`](components/pos-ui.tsx) (gelap POS).
+- **Section Vertical Rhythm**: Standard sections utilize `space-3xl` (`5rem` / 80px) vertical padding on desktop, scaling down to `space-2xl` (`3rem` / 48px) on mobile viewports.
+- **Card Padding**: Inner cards use `p-6` (24px) for compact stat cards and `p-8` (32px) to `p-12` (48px) for prominent feature and pricing containers.
+- **Grids**:
+  - Feature & Comparison grids: 2-column layout on desktop (`md:grid-cols-2`), reflowing to single-column on mobile with a `gap-8` gutter.
+  - Metrics row: 4-column layout (`lg:grid-cols-4`) collapsing to a 2-column grid (`grid-cols-2`) on tablet/mobile with `gap-4` to `gap-6`.
+  - Pricing & Testimonials: 3-column layout (`lg:grid-cols-3`) collapsing to 1-column on handheld screens.
 
-### 5.2 Input & Form
+## Elevation & Depth
 
-- Tinggi `h-10` (desktop) atau `h-11` (target sentuh kasir tablet).
-- Background `#ffffff`, radius `rounded-lg`, padding `px-3.5 py-2`.
-- Border `border-lp-outline-variant/60`, focus
-  `focus:border-lp-primary focus:ring-2 focus:ring-lp-primary/20`.
-- Label di atas input: `text-xs font-semibold text-lp-on-surface mb-1.5`.
-- Error inline **di bawah field**, dengan slot `min-h-4` yang sudah disiapkan
-  (mencegah layout shift merebut klik di tengah gestur). Lihat §7.4.
+The system uses clean, layered elevation anchored by soft diffuse drop shadows and crisp border definitions rather than muddy heavy shadows:
 
-### 5.3 Kartu Resep & BOM
+1. **Level 0 (Flat Surfaces)**: `surface-low` backgrounds bounded by 1px solid `surface-container` (`#e5eeff`).
+2. **Level 1 (Card Baseline - `shadow-sm`)**: Used on standard content containers, cards, and input groups.
+   - `box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);` with border `1px solid var(--surface-container)`.
+3. **Level 2 (Interactive & Floating - `shadow-md` / `shadow-lg`)**: Applied to live telemetry badges, action buttons, and highlighted product cards.
+   - `box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);`
+4. **Level 3 (Modal & Spotlight - `shadow-xl` / `shadow-2xl`)**: Utilized by the main POS preview container, the interactive calculator, and full-width gradient banners.
+5. **Glass Surface Tier**: Sticky navigation bar uses `bg-white/90` with `backdrop-blur-md` and a 1px border `border-surface-container`.
 
-- Header: nama menu + kategori.
-- Tabel mikro: *Nama Bahan* · *Takaran (gr/ml)* · *Biaya Satuan* · *Subtotal HPP*.
-  Takaran & biaya wajib `font-mono`.
-- Footer: **Total HPP** (JetBrains Mono, `data-currency`) disandingkan
-  **Harga Jual** dan badge **Gross Profit Margin** (mis. `68.8%`).
+## Shapes
 
-### 5.4 Kartu KPI Ringkasan
+The design system adopts a **Level 2 (Rounded)** shape strategy to create friendly yet structured software components:
 
-- Header: nama metrik (`label-xs` uppercase `lp-tertiary`) + judul
-  (`headline-md`) + ikon 40×40 dalam `rounded-lg bg-lp-surface-low`.
-- Body: angka primer `font-mono text-2xl font-bold text-lp-on-surface`.
-- Footer: badge delta hijau (`+24.8%`) atau merah (kebocoran bahan), plus
-  catatan pembanding.
-- Aksen: rule 4px di tepi bawah kartu, warna sesuai domain metrik.
-- Tanpa baseline pembanding → **jangan** render `0%`; sembunyikan chip-nya.
+- **Buttons & Control Elements**: `rounded-xl` (`0.75rem` / 12px) for touch targets, action buttons, and input fields.
+- **Standard Cards & Tiles**: `rounded-2xl` (`1rem` / 16px) for feature modules, comparison cards, and testimonial blocks.
+- **Hero Windows & Calculator Enclosures**: `rounded-3xl` (`1.5rem` / 24px) for major interface frames.
+- **Badges, Pills & Status Tokens**: Fully pill-shaped (`rounded-full`) for status alerts, discount markers, and navigation filter switches.
+- **Icon Wells**: `rounded-xl` (`0.75rem` / 12px) containers creating balanced backdrops for 20px - 26px Material Symbols icons.
 
-Implementasi: [`kpi-card.tsx`](app/(backoffice)/dashboard/kpi-card.tsx).
+## Components
 
-### 5.5 Tabel Data
+### Buttons
+- **Primary Button**: Solid fill with `bg-primary` (`#059669`), text `white`, font weight `600`, border-radius `rounded-xl`, padding `px-6 py-3.5`. Hover state deepens to `bg-primary-container` (`#00855d`) with subtle shadow enhancement.
+- **Secondary / Outlined Button**: `bg-white`, border `1px solid var(--outline-variant)` (`#bccac0`), text `on-surface` (`#0b1c30`). Hover shifts to `bg-surface-low`.
+- **Hero Contrast CTA**: `bg-white`, text `primary` (`#059669`), font weight `700`, `shadow-md`, hover `bg-emerald-50`.
 
-- Header `label-xs` uppercase `lp-tertiary`.
-- Baris dipisah `border-lp-surface-container`; striping opsional
-  `bg-lp-surface-low`.
-- Kolom angka rata kanan + `font-mono`. Kolom teks rata kiri.
+### Chips & Badges
+- **Status Pill**: Small inline-flex container (`px-3 py-1` or `px-4 py-1.5`), `rounded-full`, font size `11px - 12px`, weight `600`.
+  - Emerald variant: `bg-emerald-50 border border-emerald-200 text-primary`.
+  - Amber variant: `bg-amber-50 border border-amber-200 text-secondary`.
+  - Dark/Promo variant: `bg-secondary-container text-on-secondary-container`.
 
----
+### Cards
+- **Standard Card**: White background `surface-container-lowest`, `rounded-2xl`, border `1px solid var(--surface-container)`, `p-6` or `p-8`.
+- **Highlighted / Featured Card**: Wrapped with `border-2 border-primary`, elevated by `shadow-xl`, equipped with an absolute center-top pill badge.
+- **Comparative Card Pair**:
+  - "Cara Lama": Muted red border (`border-red-200`), error icon wells (`bg-red-100 text-error`), and light warning alert footer (`bg-red-50`).
+  - "Dengan Tumbuh": `bg-emerald-50/40 border-2 border-primary`, green check tokens, and success guarantee footer.
 
-## 6. Konfigurasi Referensi
+### Interactive Slider Widget
+- Input range track styled with `accent-primary` or `accent-secondary`, height `0.5rem`, `bg-surface-container`, `rounded-lg`.
+- Accompanying live value display badge styled in `JetBrains Mono` with soft-tinted backgrounds matching the control accent.
 
-Dokumen ini adalah sumbernya. **Jangan** menyalin blok `tailwind.config` ke
-proyek ini — repo memakai Tailwind v4 tanpa config, token hidup di
-`@theme` di `app/globals.css` (§7.1). Blok di bawah hanya referensi kalau
-proyek lain perlu memetakan palette ini ke Tailwind.
+### Recipe Breakdown Bar
+- Segmented linear progress tracker (`h-2 rounded-full overflow-hidden flex`) dividing ingredients visually according to cost proportion using `primary`, `secondary`, `secondary-container`, and `tertiary`.
 
-```javascript
-// REFERENSI SAJA — bukan untuk ditempel ke tumbuh-fe.
-{
-  colors: {
-    primary: "#059669", "primary-container": "#00855d",
-    "primary-fixed": "#85f8c4", "on-primary": "#ffffff",
-    "on-primary-container": "#f5fff7", "on-primary-fixed": "#002114",
-    surface: "#f8f9ff", "surface-container-lowest": "#ffffff",
-    "surface-container-low": "#eff4ff", "surface-container": "#e5eeff",
-    "surface-container-high": "#dce9ff", "surface-container-highest": "#d3e4fe",
-    "inverse-surface": "#213145", "inverse-on-surface": "#eaf1ff",
-    "on-surface": "#0b1c30", "on-surface-variant": "#3d4a42",
-    tertiary: "#545c72", outline: "#6d7a72", "outline-variant": "#bccac0",
-    secondary: "#855300", "secondary-container": "#fea619",
-    error: "#ba1a1a", "error-container": "#ffdad6", "on-error-container": "#93000a",
-  },
-  fontFamily: { sans: ["Plus Jakarta Sans"], mono: ["JetBrains Mono"] },
-  borderRadius: { lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", "3xl": "1.5rem" },
-}
-```
-
----
-
-## 7. Mapping ke Kode
-
-### 7.1 Token
-
-Token warna & font di `app/globals.css`, prefix `--color-lp-*` /
-`--font-lp-*` → utility `bg-lp-*`, `text-lp-*`, `font-lp-sans`, `font-lp-mono`.
-
-`--font-lp-*` **wajib** di blok `@theme inline`. Token derived di blok
-`@theme` biasa di-substitusi di `:root`, tempat `next/font` tidak pernah
-menaruh `--font-landing-*`, sehingga seluruh font stack jatuh ke
-*guaranteed-invalid* dan diam-diam jadi Geist. Terapkan `plusJakarta.variable`
-/ `jetbrainsMono.variable` di root halaman yang memakainya
-(`app/page.tsx`, `app/(backoffice)/dashboard/page.tsx`,
-`app/(auth)/login/owner/owner-panel.tsx`).
-
-### 7.2 Dua tema, jangan dicampur
-
-| Tema | Token | Komponen | Halaman |
-|---|---|---|---|
-| Light (backoffice/landing/auth) | `lp-*` | `components/ui/*`, `components/landing/*` | `/`, `/login`, `/register`, `/dashboard` (+ `owner-shell.tsx`), legal |
-| Dark (POS) | `--surface`/`--panel`/`--ink`/`--muted` | `components/pos-ui.tsx` | `/pos`, `/kasir` |
-
-`/reports` memakai `AppNav` gelap di atas konten light — itu satu-satunya
-halaman campuran yang diizinkan saat ini.
-
-### 7.3 Angka & format
-
-Semua uang lewat [`lib/format.ts`](lib/format.ts) (`formatIDR`, `formatNumber`)
-— jangan `toLocaleString` ad-hoc. Bungkus dalam `font-lp-mono`.
-
-### 7.4 Form
-
-`react-hook-form` + `zodResolver`; schema colocated dengan route; `z.infer`
-sebagai satu-satunya sumber tipe. Error inline per field dengan slot `min-h-4`.
-
-### 7.5 Ikon
-
-Material Symbols via [`components/icon.tsx`](components/icon.tsx). **Dilarang**
-emoji sebagai ikon. Ikon dekoratif selalu `aria-hidden` (sudah di-handle
-komponen); tombol ikon-saja tetap butuh `aria-label`.
-
----
-
-## 8. Checklist Sebelum Kirim UI
-
-1. Kontras teks ≥4.5:1 (≥3:1 untuk elemen grafis) di light **dan** dark.
-2. Target sentuh ≥44×44px; jarak antar target ≥8px.
-3. Fokus keyboard terlihat di semua kontrol interaktif.
-4. Angka uang/persentase pakai `font-lp-mono`; tidak ada warna mentah di komponen.
-5. Satu level elevasi per lapisan; tidak ada scroll horizontal di 360px.
-6. `prefers-reduced-motion` dihormati untuk animasi non-esensial.
-7. Ikon dari `components/icon.tsx`, bukan emoji; ikon-saja punya label.
-8. Empty state eksplisit ("Belum ada data"), bukan kartu kosong tanpa penjelasan.
-9. Delta/risiko tanpa baseline ditampilkan sebagai ketiadaan, bukan `0%`.
+### Accordion / FAQ Item
+- Built with HTML `<details>` element, styled with `bg-surface-low rounded-xl p-5 border border-surface-container`.
+- Summary features standard `font-bold text-sm text-on-surface`, with an animated chevron expanding via CSS transition `group-open:rotate-180`.
