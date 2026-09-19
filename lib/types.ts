@@ -195,9 +195,13 @@ export type DailySummary = {
   taxAmount?: number;
   discountAmount?: number;
   serviceCharge?: number;
+  /** BE names this `orderCount`; adapters normalise it to `totalOrders`. */
+  orderCount?: number;
   totalOrders?: number;
   paidOrders?: number;
   averageOrderValue?: number;
+  /** Outlet daily revenue goal from `/v1/outlets/:id/targets`; 0 = unset. */
+  dailyRevenueTarget?: number;
   [key: string]: unknown;
 };
 
@@ -206,6 +210,7 @@ export type SalesSummary = DailySummary & {
   dateTo: string;
 };
 
+/** Normalised in `lib/api.ts` from the BE's `{productName, soldQty}` shape. */
 export type TopProduct = {
   productId?: string;
   name?: string;
@@ -214,9 +219,62 @@ export type TopProduct = {
   [key: string]: unknown;
 };
 
+/** Normalised in `lib/api.ts` from the BE's `{buckets: [...]}` shape. */
 export type HourlySalesRow = {
   hour: number;
   orders?: number;
   revenue?: number;
   [key: string]: unknown;
+};
+
+export type PaymentMethodRow = {
+  method: string;
+  amount?: number;
+  percentage?: number;
+  transactionCount?: number;
+};
+
+/** Latest closed shift's cash reconciliation (`/v1/reports/payment-methods`). */
+export type CashDrawer = {
+  expectedCash: number;
+  countedCash: number;
+  variance: number;
+};
+
+/** One row per clocked-in employee; `terminalName` is the shift/outlet label. */
+export type ActiveShift = {
+  terminalName: string;
+  cashierName: string | null;
+  role: string | null;
+  startedAt: string;
+  status: string;
+};
+
+/** Normalised in `lib/api.ts` from the BE's `{buckets: [...]}` shape. */
+export type HourlyForecastRow = {
+  hour: number;
+  expectedRevenue?: number;
+};
+
+/** Platform announcement (`severity` is free-form; style maps it defensively). */
+export type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  severity?: string;
+  startsAt?: string;
+  endsAt?: string | null;
+};
+
+/** Raw material with a safety-stock verdict (`/v1/inventory/stock-levels`). */
+export type StockLevel = {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  currentQty: number;
+  minQty: number;
+  usageNote?: string | null;
+  /** Projected empty date from 7-day usage; null when usage can't be estimated. */
+  depletedAt?: string | null;
+  status: 'critical' | 'low' | 'ok' | string;
 };

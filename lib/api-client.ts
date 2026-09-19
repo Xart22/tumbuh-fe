@@ -194,3 +194,33 @@ export async function apiFetch<T>(
 export function apiUrl(path: string): string {
   return `${API_URL}${path}`;
 }
+
+/**
+ * Raw (non-JSON) GET for CSV exports. `doFetch` always JSON-parses, so the
+ * `@SkipEnvelope` text/csv routes need their own path. No retry: a download
+ * failure surfaces to the user better than a silent double-read.
+ */
+export async function apiDownloadBlob(path: string): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
+  if (currentOutletId) headers['X-Outlet-Id'] = currentOutletId;
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      headers,
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+  } catch {
+    throw new ApiError('Tidak dapat menghubungi server', 0, 'network_error');
+  }
+
+  if (response.status === 401) {
+    unauthorizedHandler?.();
+    throw new ApiError('Sesi berakhir, silakan login ulang', 401, 'unauthorized');
+  }
+  if (!response.ok) {
+    throw new ApiError('Gagal mengunduh berkas', response.status, 'http_error');
+  }
+  return response.blob();
+}

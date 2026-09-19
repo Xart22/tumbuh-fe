@@ -55,7 +55,7 @@ export function OwnerLoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await loginOwner(values.email.trim(), values.password, picked || undefined);
-      router.replace('/reports');
+      router.replace('/dashboard');
     } catch (err) {
       if (err instanceof WorkspaceChoiceRequired) {
         setOptions(err.workspaces);

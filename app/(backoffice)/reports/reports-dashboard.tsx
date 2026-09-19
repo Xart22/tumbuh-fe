@@ -174,10 +174,10 @@ export function ReportsDashboard() {
                     >
                       <span className="text-muted">{m.method}</span>
                       <span className="text-ink">
-                        {formatIDR(m.total ?? 0)}
-                        {m.count !== undefined && (
+                        {formatIDR(m.amount ?? 0)}
+                        {m.percentage !== undefined && (
                           <span className="ml-2 text-xs text-muted">
-                            {m.count}x
+                            {m.percentage.toFixed(0)}%
                           </span>
                         )}
                       </span>

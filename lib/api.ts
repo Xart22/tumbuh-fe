@@ -1,19 +1,26 @@
-import { apiFetch, newIdempotencyKey } from './api-client';
+import { apiDownloadBlob, apiFetch, newIdempotencyKey } from './api-client';
 import type {
+  ActiveShift,
+  Announcement,
+  CashDrawer,
   Category,
   CreatedOrder,
   DailySummary,
   HourlySalesRow,
+  HourlyForecastRow,
   Modifier,
   ModifierGroup,
   OrderType,
+  Outlet,
   OwnerLoginResult,
   Paginated,
   PaymentMethod,
+  PaymentMethodRow,
   PaymentResult,
   Product,
   ProductVariant,
   SalesSummary,
+  StockLevel,
   TopProduct,
   WorkspaceOption,
 } from './types';
@@ -247,10 +254,62 @@ export function createPayment(input: PayInput): Promise<PaymentResult> {
   });
 }
 
+// --- Shifts ---------------------------------------------------------------
+
+/** Currently clocked-in staff. Empty array = no terminal active. */
+export function activeShifts(): Promise<ActiveShift[]> {
+  return apiFetch<ActiveShift[]>('/v1/shifts/active');
+}
+
+// --- Notifications ---------------------------------------------------------
+
+/** Active platform announcements. Public route — no outlet scope needed. */
+export function announcements(): Promise<Announcement[]> {
+  return apiFetch<Announcement[]>('/v1/notifications/announcements', {
+    outletScoped: false,
+  });
+}
+
+// --- Inventory ------------------------------------------------------------
+
+/** Raw materials at/below safety stock. Empty array = all healthy. */
+export function lowStockLevels(): Promise<StockLevel[]> {
+  return apiFetch<StockLevel[]>(
+    '/v1/inventory/stock-levels?belowSafetyStock=true',
+  );
+}
+
+// --- Outlets --------------------------------------------------------------
+
+/** Owner/manager session has no outlet scope; the backoffice picks one. */
+export function listOutlets(): Promise<Outlet[]> {
+  return apiFetch<Outlet[]>('/v1/outlets');
+}
+
+/** Set the outlet's daily revenue goal (0 clears it). */
+export function setOutletDailyTarget(
+  outletId: string,
+  dailyRevenue: number,
+): Promise<{ outletId: string; dailyRevenueTarget: number }> {
+  return apiFetch<{ outletId: string; dailyRevenueTarget: number }>(
+    `/v1/outlets/${outletId}/targets`,
+    { method: 'PATCH', body: { dailyRevenue } },
+  );
+}
+
 // --- Reports --------------------------------------------------------------
+// BE field names differ per endpoint (`orderCount`/`productName`/`soldQty`/
+// `buckets`), so each report is normalised here — pages consume one shape.
 
 export function dailySummary(date: string): Promise<DailySummary> {
-  return apiFetch<DailySummary>(`/v1/reports/daily-summary?date=${date}`);
+  return apiFetch<DailySummary>(`/v1/reports/daily-summary?date=${date}`).then(
+    (raw) => ({ ...raw, totalOrders: raw.totalOrders ?? raw.orderCount ?? 0 }),
+  );
+}
+
+/** Daily summary as a CSV blob (`@SkipEnvelope` route — raw text/csv). */
+export function downloadDailySummary(date: string): Promise<Blob> {
+  return apiDownloadBlob(`/v1/reports/export/daily?date=${date}`);
 }
 
 export function salesSummary(
@@ -259,7 +318,10 @@ export function salesSummary(
 ): Promise<SalesSummary> {
   return apiFetch<SalesSummary>(
     `/v1/reports/sales-summary?dateFrom=${dateFrom}&dateTo=${dateTo}`,
-  );
+  ).then((raw) => ({
+    ...raw,
+    totalOrders: raw.totalOrders ?? raw.orderCount ?? 0,
+  }));
 }
 
 export function topProducts(
@@ -267,21 +329,123 @@ export function topProducts(
   dateTo: string,
   top = 10,
 ): Promise<TopProduct[]> {
-  return apiFetch<TopProduct[]>(
+  type Raw = { productId?: string; productName?: string; soldQty?: number; revenue?: number };
+  return apiFetch<Raw[]>(
     `/v1/reports/top-products?dateFrom=${dateFrom}&dateTo=${dateTo}&top=${top}`,
+  ).then((rows) =>
+    rows.map((row) => ({
+      productId: row.productId,
+      name: row.productName,
+      qty: row.soldQty ?? 0,
+      revenue: row.revenue ?? 0,
+    })),
   );
 }
 
 export function hourlySales(date: string): Promise<HourlySalesRow[]> {
-  return apiFetch<HourlySalesRow[]>(`/v1/reports/hourly-sales?date=${date}`);
+  type Raw = {
+    buckets?: Array<{ hour: number; orderCount?: number; grossSales?: number }>;
+  };
+  return apiFetch<Raw>(`/v1/reports/hourly-sales?date=${date}`).then((raw) =>
+    (raw.buckets ?? []).map((bucket) => ({
+      hour: bucket.hour,
+      orders: bucket.orderCount ?? 0,
+      revenue: bucket.grossSales ?? 0,
+    })),
+  );
+}
+
+/** Expected revenue per hour — same-weekday average over the last 4 weeks. */
+export function hourlyForecast(date: string): Promise<HourlyForecastRow[]> {
+  type Raw = { buckets?: Array<{ hour: number; expectedRevenue?: number }> };
+  return apiFetch<Raw>(`/v1/reports/forecast?date=${date}`).then((raw) =>
+    (raw.buckets ?? []).map((bucket) => ({
+      hour: bucket.hour,
+      expectedRevenue: bucket.expectedRevenue ?? 0,
+    })),
+  );
 }
 
 export function paymentMethodsBreakdown(
   dateFrom: string,
   dateTo: string,
-): Promise<Array<{ method: string; total?: number; count?: number }>> {
-  return apiFetch(
+): Promise<PaymentMethodRow[]> {
+  return paymentMethodsReport(dateFrom, dateTo).then((report) => report.methods);
+}
+
+export type PaymentMethodsReport = {
+  methods: PaymentMethodRow[];
+  /** Latest closed shift's expected/counted cash; null when none closed. */
+  cashDrawer: CashDrawer | null;
+  totalTransactions: number;
+  totalAmount: number;
+};
+
+export function paymentMethodsReport(
+  dateFrom: string,
+  dateTo: string,
+): Promise<PaymentMethodsReport> {
+  type Raw = {
+    methods?: Array<{
+      method: string;
+      amount?: number;
+      percentage?: number;
+      transactionCount?: number;
+    }>;
+    cashDrawer?: CashDrawer | null;
+    transactionCount?: number;
+    totalAmount?: number;
+  };
+  return apiFetch<Raw>(
     `/v1/reports/payment-methods?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  ).then((raw) => ({
+    methods: raw.methods ?? [],
+    cashDrawer: raw.cashDrawer ?? null,
+    totalTransactions: raw.transactionCount ?? 0,
+    totalAmount: raw.totalAmount ?? 0,
+  }));
+}
+
+// --- Search ---------------------------------------------------------------
+
+export type SearchOrderHit = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
+  total: number;
+  createdAt: string;
+};
+
+export type SearchProductHit = {
+  id: string;
+  name: string;
+  basePrice: number;
+  isAvailable: boolean;
+};
+
+export type SearchCustomerHit = {
+  id: string;
+  name: string;
+  phone: string | null;
+  tier: string;
+};
+
+export type SearchResults = {
+  query: string;
+  orders: SearchOrderHit[];
+  products: SearchProductHit[];
+  customers: SearchCustomerHit[];
+};
+
+/** Backoffice global search (`/v1/search`). Min 2 chars; BE short-circuits. */
+export function globalSearch(
+  query: string,
+  signal?: AbortSignal,
+): Promise<SearchResults> {
+  return apiFetch<SearchResults>(
+    `/v1/search?q=${encodeURIComponent(query)}&limit=5`,
+    { signal },
   );
 }
 

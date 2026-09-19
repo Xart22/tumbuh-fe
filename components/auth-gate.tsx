@@ -60,7 +60,8 @@ export function AuthGate({
     if (!hydrated) return;
     if (!allowed) router.replace(loginPath);
     else if (!requireAuth && session) {
-      router.replace(outletOk ? '/pos' : '/reports');
+      // Kasir sessions belong in the POS; owners land on the dashboard.
+      router.replace(outletOk ? '/pos' : '/dashboard');
     }
   }, [hydrated, allowed, session, outletOk, requireAuth, loginPath, router]);
 

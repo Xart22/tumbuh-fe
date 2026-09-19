@@ -2,10 +2,12 @@ import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
+// `.mts`, not `.ts`: package.json has no `"type": "module"`, so a `.ts` config is
+// loaded as CommonJS and its ESM syntax silently fails to load.
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { '@': path.resolve(__dirname) },
+    alias: { '@': path.resolve(import.meta.dirname) },
   },
   test: {
     environment: 'jsdom',

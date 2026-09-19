@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { AuthGate } from '@/components/auth-gate';
-import { AppNav } from '@/components/app-nav';
+import { OutletBootstrap } from '@/components/outlet-bootstrap';
 
-export const metadata: Metadata = { title: 'Laporan Backoffice · Tumbuh POS' };
+export const metadata: Metadata = { title: 'Backoffice · Tumbuh POS' };
 
+/** Auth only: each page owns its chrome (dark POS nav vs light owner shell). */
 export default function BackofficeLayout({
   children,
 }: {
@@ -11,10 +12,7 @@ export default function BackofficeLayout({
 }) {
   return (
     <AuthGate requireOutlet={false}>
-      <div className="flex min-h-screen flex-col">
-        <AppNav />
-        <div className="flex-1">{children}</div>
-      </div>
+      <OutletBootstrap>{children}</OutletBootstrap>
     </AuthGate>
   );
 }

@@ -42,9 +42,10 @@
   --font-mono: var(--font-geist-mono);
 
   /* Landing palette (light marketing page; `lp-` prefix keeps the dark
-     POS shell tokens untouched). Values mirror the approved design. */
-  --font-lp-sans: var(--font-landing-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-lp-mono: var(--font-landing-mono), ui-monospace, monospace;
+     POS shell tokens untouched). Values mirror the approved design.
+     Fonts live in the `@theme inline` block below: a derived token declared
+     here would substitute `var(--font-landing-*)` at :root, where next/font
+     never sets it, and land on the guaranteed-invalid value. */
 
   --color-lp-primary: #059669;
   --color-lp-primary-container: #00855d;
@@ -52,6 +53,7 @@
   --color-lp-primary-fixed-dim: #68dba9;
   --color-lp-on-primary: #ffffff;
   --color-lp-on-primary-container: #f5fff7;
+  --color-lp-on-primary-fixed: #002114;
   --color-lp-secondary: #855300;
   --color-lp-secondary-container: #fea619;
   --color-lp-on-secondary: #ffffff;
@@ -61,6 +63,9 @@
   --color-lp-surface-container: #e5eeff;
   --color-lp-surface-container-lowest: #ffffff;
   --color-lp-surface-container-high: #dce9ff;
+  --color-lp-surface-container-highest: #d3e4fe;
+  --color-lp-inverse-surface: #213145;
+  --color-lp-inverse-on-surface: #eaf1ff;
   --color-lp-background: #f8f9ff;
   --color-lp-on-background: #0b1c30;
   --color-lp-on-surface: #0b1c30;
@@ -71,6 +76,7 @@
   --color-lp-error: #ba1a1a;
   --color-lp-error-container: #ffdad6;
   --color-lp-on-error: #ffffff;
+  --color-lp-on-error-container: #93000a;
 }
 
 /* POS runs in dim kitchens and counters: dark is the default, not a toggle. */
@@ -85,6 +91,12 @@
 }
 
 @theme inline {
+  /* `inline` keeps the var() reference in the generated `font-lp-*`
+     utilities, so it resolves against the element carrying the next/font
+     variable instead of :root (see the note in the first @theme block). */
+  --font-lp-sans: var(--font-landing-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-lp-mono: var(--font-landing-mono), ui-monospace, monospace;
+
   --color-surface: var(--surface);
   --color-panel: var(--panel);
   --color-panel-2: var(--panel-2);

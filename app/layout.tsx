@@ -31,7 +31,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full scroll-smooth`}
     >
       <head>
-        {/* Icon glyphs for the marketing landing page (FILL axis included). */}
+        {/* Icon glyphs for the marketing landing page (FILL axis included).
+            The rule assumes `pages/_document.js`; App Router's root layout is
+            the correct and only place for this, so it is a false positive. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"

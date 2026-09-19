@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Button } from './pos-ui';
 
 const LINKS = [
+  { href: '/dashboard', label: 'Dashboard', roles: ['owner', 'manager'] },
   { href: '/pos', label: 'Kasir', roles: null },
   { href: '/reports', label: 'Laporan', roles: ['owner', 'manager'] },
 ] as const;

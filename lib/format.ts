@@ -9,12 +9,21 @@ const plain = new Intl.NumberFormat('id-ID', {
   maximumFractionDigits: 0,
 });
 
+/** Stock quantities can be fractional (0.5 kg) — don't round them to 0/1. */
+const qty = new Intl.NumberFormat('id-ID', {
+  maximumFractionDigits: 2,
+});
+
 export function formatIDR(value: number): string {
   return idr.format(value ?? 0);
 }
 
 export function formatNumber(value: number): string {
   return plain.format(value ?? 0);
+}
+
+export function formatQty(value: number): string {
+  return qty.format(value ?? 0);
 }
 
 export function todayISO(): string {
