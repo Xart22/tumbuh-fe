@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -132,14 +133,12 @@ export function OwnerLoginForm() {
           <label htmlFor="owner-password" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
             Kata Sandi
           </label>
-          <a
-            href="https://wa.me/62811886284"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/lupa-password"
             className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
           >
             Lupa password?
-          </a>
+          </Link>
         </div>
         <div className="relative">
           <input

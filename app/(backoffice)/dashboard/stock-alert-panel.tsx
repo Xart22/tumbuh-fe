@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import { Icon } from '@/components/icon';
-import { formatQty } from '@/lib/format';
+import { formatIDR, formatQty } from '@/lib/format';
 import type { StockLevel } from '@/lib/types';
 
 const MAX_ROWS = 6;
@@ -44,9 +45,12 @@ function emptyEta(iso?: string | null): string | null {
 export function StockAlertPanel({
   rows,
   loading,
+  inventoryValue = null,
 }: {
   rows: StockLevel[];
   loading: boolean;
+  /** Total inventory asset value (moving average); null while unknown. */
+  inventoryValue?: number | null;
 }) {
   const critical = rows.filter((row) => row.status === 'critical').length;
   const shown = rows.slice(0, MAX_ROWS);
@@ -70,6 +74,14 @@ export function StockAlertPanel({
         <p className="mt-1 text-xs text-lp-tertiary">
           Stok di bawah batas minimum (safety stock level).
         </p>
+        {inventoryValue !== null && (
+          <p className="mt-1 text-xs text-lp-tertiary">
+            Nilai persediaan:{' '}
+            <span className="font-lp-mono font-semibold text-lp-on-surface">
+              {formatIDR(inventoryValue)}
+            </span>
+          </p>
+        )}
       </div>
 
       {loading ? (
@@ -137,6 +149,13 @@ export function StockAlertPanel({
               +{rows.length - shown.length} bahan lain di bawah minimum.
             </span>
           )}
+          <Link
+            href="/inventory"
+            className="flex items-center gap-1 pt-1 text-[11px] font-semibold text-lp-primary hover:underline"
+          >
+            Kelola bahan &amp; resep di Inventori
+            <Icon name="arrow_forward" className="text-[14px]" />
+          </Link>
         </div>
       )}
     </div>

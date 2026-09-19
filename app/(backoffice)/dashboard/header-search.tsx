@@ -20,18 +20,39 @@ function InfoRow({
   icon,
   title,
   meta,
+  href,
+  onGo,
 }: {
   icon: string;
   title: string;
   meta: string;
+  href?: string;
+  onGo?: (href: string) => void;
 }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5">
+  const content = (
+    <>
       <Icon name={icon} className="text-[18px] text-lp-on-surface-variant" />
       <span className="flex-1 truncate text-sm text-lp-on-surface">{title}</span>
       <span className="shrink-0 text-[11px] text-lp-tertiary">{meta}</span>
-    </div>
+    </>
   );
+
+  if (href && onGo) {
+    return (
+      <button
+        type="button"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          onGo(href);
+        }}
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-lp-surface-low"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="flex items-center gap-2 px-3 py-1.5">{content}</div>;
 }
 
 /**
@@ -177,6 +198,8 @@ export function HeaderSearch() {
                   icon="restaurant_menu"
                   title={row.name}
                   meta={`${row.isAvailable ? '' : 'Habis · '}${formatIDR(row.basePrice)}`}
+                  href="/menu"
+                  onGo={go}
                 />
               ))}
             </>

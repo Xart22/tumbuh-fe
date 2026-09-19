@@ -11,6 +11,7 @@ import {
   downloadDailySummary,
   hourlyForecast,
   hourlySales,
+  inventoryValuation,
   lowStockLevels,
   paymentMethodsReport,
   salesSummary,
@@ -62,7 +63,7 @@ export function DashboardView() {
     }
   }
 
-  const [dailyQ, salesQ, topsQ, hourlyQ, methodsQ, prevHourlyQ, shiftsQ, forecastQ, stockQ] =
+  const [dailyQ, salesQ, topsQ, hourlyQ, methodsQ, prevHourlyQ, shiftsQ, forecastQ, stockQ, valuationQ] =
     useQueries({
       queries: [
         {
@@ -101,6 +102,10 @@ export function DashboardView() {
           queryKey: ['inventory', 'stock-levels'],
           queryFn: lowStockLevels,
         },
+        {
+          queryKey: ['reports', 'inventory-valuation'],
+          queryFn: inventoryValuation,
+        },
       ],
     });
 
@@ -114,6 +119,7 @@ export function DashboardView() {
   const active = shiftsQ.data ?? null;
   const forecast = forecastQ.data ?? [];
   const stockAlerts = stockQ.data ?? [];
+  const inventoryValue = valuationQ.data?.totalAssetValue ?? null;
   const queries = [dailyQ, salesQ, topsQ, hourlyQ, methodsQ];
   const loading = queries.some((q) => q.isPending);
   const failed = queries.find((q) => q.isError);
@@ -368,7 +374,11 @@ export function DashboardView() {
           )}
         </div>
 
-        <StockAlertPanel rows={stockAlerts} loading={stockQ.isPending} />
+        <StockAlertPanel
+          rows={stockAlerts}
+          loading={stockQ.isPending}
+          inventoryValue={inventoryValue}
+        />
       </section>
 
       {/* Bottom row: top products (1/2) + payment methods (1/2). */}

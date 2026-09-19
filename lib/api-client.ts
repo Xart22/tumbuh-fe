@@ -62,6 +62,8 @@ function report(err: ApiError, path: string, method: string): void {
 type FetchOptions = {
   method?: string;
   body?: unknown;
+  /** Multipart upload; takes precedence over `body` and skips JSON headers. */
+  formData?: FormData;
   /** Adds the Idempotency-Key header; required by POST /orders and /payments. */
   idempotencyKey?: string;
   /** Extra headers (e.g. Idempotency-Key for onboarding retries). */
@@ -93,19 +95,29 @@ async function doFetch<T>(path: string, options: FetchOptions): Promise<T> {
   if (options.idempotencyKey) {
     headers['Idempotency-Key'] = options.idempotencyKey;
   }
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (options.formData === undefined && options.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   const timeout = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   const signal = options.signal
     ? AbortSignal.any([options.signal, timeout])
     : timeout;
 
+  // FormData must set its own multipart boundary — never a JSON content-type.
+  const requestBody =
+    options.formData !== undefined
+      ? options.formData
+      : options.body === undefined
+        ? undefined
+        : JSON.stringify(options.body);
+
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
       method,
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: requestBody,
       signal,
     });
   } catch (err) {
