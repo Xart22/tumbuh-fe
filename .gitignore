@@ -15,6 +15,9 @@
 /test-results/
 /playwright-report/
 
+# local assistant/browser artifacts (screenshots, downloaded CSV from checks)
+.playwright-mcp/
+
 # next.js
 /.next/
 /out/
@@ -45,6 +48,13 @@ plans/
 .roo/
 .agents/
 skills-lock.json
+
+# stray shell output (a literal `%TEMP%` dir from ad-hoc `cmd.exe` redirects,
+# resurrected via 8.3 aliases) plus local scratch logs
+"%TEMP%"
+%TEMP%
+dev.log
+be.log
 
 # typescript
 *.tsbuildinfo
