@@ -34,7 +34,7 @@ export const modifierSchema = z.object({
 });
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20';
+  'w-full rounded-lg bg-lp-surface-low px-2.5 py-1.5 text-sm text-lp-on-surface outline-none placeholder:text-lp-on-surface-variant focus:bg-lp-surface-container';
 
 /** Modifier groups (required/optional choice sets) for one product. */
 export function ModifierEditor({ productId }: { productId: string }) {
@@ -44,6 +44,9 @@ export function ModifierEditor({ productId }: { productId: string }) {
   const [maxSelect, setMaxSelect] = useState('1');
   const [error, setError] = useState<string | null>(null);
   const [newModifier, setNewModifier] = useState<Record<string, string>>({});
+  const [newModifierPrice, setNewModifierPrice] = useState<
+    Record<string, string>
+  >({});
 
   const key = ['menu', 'modifier-groups', productId];
   const groupsQ = useQuery({
@@ -82,6 +85,7 @@ export function ModifierEditor({ productId }: { productId: string }) {
       }),
     onSuccess: (_data, variables) => {
       setNewModifier((state) => ({ ...state, [variables.groupId]: '' }));
+      setNewModifierPrice((state) => ({ ...state, [variables.groupId]: '' }));
       void invalidate();
     },
     onError: (err) =>
@@ -114,7 +118,7 @@ export function ModifierEditor({ productId }: { productId: string }) {
     const draft = newModifier[groupId] ?? '';
     const parsed = modifierSchema.safeParse({
       name: draft,
-      priceAddition: 0,
+      priceAddition: Number(newModifierPrice[groupId] || 0),
     });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Pilihan tidak valid.');
@@ -178,7 +182,7 @@ export function ModifierEditor({ productId }: { productId: string }) {
                 group.modifiers?.map((modifier) => (
                   <span
                     key={modifier.id}
-                    className="flex items-center gap-1 rounded-full bg-lp-surface-container-low px-2 py-0.5 text-[11px] text-lp-on-surface"
+                    className="flex items-center gap-1 rounded-full bg-lp-surface-low px-2 py-0.5 text-[11px] text-lp-on-surface"
                   >
                     {modifier.name}
                     {modifier.priceAddition > 0 && (
@@ -211,6 +215,21 @@ export function ModifierEditor({ productId }: { productId: string }) {
                 placeholder="Tambah pilihan…"
                 aria-label={`Pilihan baru untuk ${group.name}`}
                 className={inputCls}
+              />
+              <input
+                value={newModifierPrice[group.id] ?? ''}
+                onChange={(event) =>
+                  setNewModifierPrice((state) => ({
+                    ...state,
+                    [group.id]: event.target.value,
+                  }))
+                }
+                type="number"
+                min={0}
+                step={500}
+                placeholder="+Rp 0"
+                aria-label={`Tambahan harga untuk ${group.name}`}
+                className={`${inputCls} w-24 shrink-0 font-lp-mono`}
               />
               <button
                 type="button"
@@ -258,7 +277,7 @@ export function ModifierEditor({ productId }: { productId: string }) {
               type="checkbox"
               checked={isRequired}
               onChange={(event) => setIsRequired(event.target.checked)}
-              className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600"
+              className="h-3.5 w-3.5 rounded border-lp-outline-variant text-lp-primary"
             />
             Wajib
           </label>

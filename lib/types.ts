@@ -47,6 +47,12 @@ export type Paginated<T> = {
   totalPages: number;
 };
 
+/** Filter badges for the menu page; omitted by older/other list endpoints. */
+export type ProductFacets = {
+  counts: { all: number; available: number; soldOut: number };
+  categoryCounts: Record<string, number>;
+};
+
 export type Outlet = {
   id: string;
   name: string;

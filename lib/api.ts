@@ -21,6 +21,7 @@ import type {
   PaymentMethodRow,
   PaymentResult,
   Product,
+  ProductFacets,
   ProductMargin,
   ProductVariant,
   ProfitSummary,
@@ -251,7 +252,7 @@ export type ProductPageQuery = {
 /** Paginated menu list with filters — backoffice table, not the POS grid. */
 export function listProductsPage(
   query: ProductPageQuery = {},
-): Promise<Paginated<Product>> {
+): Promise<Paginated<Product> & Partial<ProductFacets>> {
   const params = new URLSearchParams();
   params.set('page', String(query.page ?? 1));
   params.set('limit', String(query.limit ?? 20));
@@ -276,7 +277,7 @@ export function createProduct(input: ProductInput): Promise<Product> {
 
 export function updateProduct(
   productId: string,
-  input: ProductInput,
+  input: Partial<ProductInput>,
 ): Promise<Product> {
   return apiFetch<Product>(`/v1/products/${productId}`, {
     method: 'PATCH',
@@ -295,6 +296,30 @@ export function createCategory(input: {
   sortOrder?: number;
 }): Promise<Category> {
   return apiFetch<Category>('/v1/categories', { method: 'POST', body: input });
+}
+
+export function updateCategory(
+  categoryId: string,
+  input: { name?: string; sortOrder?: number },
+): Promise<Category> {
+  return apiFetch<Category>(`/v1/categories/${categoryId}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export function deleteCategory(categoryId: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/v1/categories/${categoryId}`, {
+    method: 'DELETE',
+  });
+}
+
+/** Persist a drag-and-drop reorder; ids arrive in their new display order. */
+export function reorderCategories(ids: string[]): Promise<{ updated: number }> {
+  return apiFetch<{ updated: number }>('/v1/categories/reorder', {
+    method: 'PATCH',
+    body: { ids },
+  });
 }
 
 // --- Product photo --------------------------------------------------------

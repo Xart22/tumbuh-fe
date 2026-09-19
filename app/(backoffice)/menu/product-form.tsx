@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
@@ -23,18 +22,16 @@ export const productSchema = z.object({
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
-type Tab = 'detail' | 'photo' | 'variants' | 'modifiers';
-
 const labelCls =
-  'mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600';
+  'mb-1 block text-xs font-bold uppercase tracking-wider text-lp-on-surface-variant';
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 aria-[invalid=true]:border-rose-400';
+  'w-full rounded-lg bg-lp-surface-low px-3 py-2.5 text-sm font-medium text-lp-on-surface outline-none transition placeholder:text-lp-on-surface-variant focus:bg-lp-surface-container aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-lp-error';
 
 function FieldError({ message }: { message?: string }) {
   return (
     <div className="min-h-4">
       {message && (
-        <p role="alert" className="mt-1 text-xs font-medium text-rose-600">
+        <p role="alert" className="mt-1 text-xs font-medium text-lp-error">
           {message}
         </p>
       )}
@@ -42,12 +39,35 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
+function SectionHeading({
+  icon,
+  title,
+}: {
+  icon: string;
+  title: string;
+}) {
+  return (
+    <span className="flex items-center gap-1.5 text-sm font-semibold text-lp-on-surface">
+      <Icon name={icon} className="text-[18px] text-lp-primary" />
+      {title}
+    </span>
+  );
+}
+
+function NeedsSaved({ label }: { label: string }) {
+  return (
+    <p className="rounded-lg bg-lp-surface-low px-3 py-2 text-xs text-lp-on-surface-variant">
+      Simpan produk dulu untuk mengatur {label}.
+    </p>
+  );
+}
+
 /**
- * Create/edit product. Detail fields are always available; Photo/Variants/
- * Modifiers need a saved product (they are keyed by its id), so those tabs
- * unlock after the first save.
+ * Inline product editor for the menu page's detail column (Stitch layout).
+ * Photo/Variants/Modifiers are keyed by the product id, so they unlock after
+ * the first save.
  */
-export function ProductFormModal({
+export function ProductFormPanel({
   product,
   categories,
   pending,
@@ -63,11 +83,12 @@ export function ProductFormModal({
   onSubmit: (values: ProductFormValues) => void;
 }) {
   const editing = product !== null;
-  const [tab, setTab] = useState<Tab>('detail');
 
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -81,211 +102,214 @@ export function ProductFormModal({
     },
   });
 
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
+  const isAvailable = useWatch({ control, name: 'isAvailable' });
   const submit = handleSubmit((values) => onSubmit(values));
 
-  const tabs: Array<{ id: Tab; label: string; icon: string }> = [
-    { id: 'detail', label: 'Detail', icon: 'edit_note' },
-    { id: 'photo', label: 'Foto', icon: 'photo_camera' },
-    { id: 'variants', label: 'Varian', icon: 'straighten' },
-    { id: 'modifiers', label: 'Modifier', icon: 'tune' },
-  ];
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm sm:items-center"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+    <form
+      onSubmit={submit}
+      noValidate
+      className="flex flex-col gap-4 rounded-xl bg-lp-surface-container-lowest p-5 shadow-md"
     >
-      <div className="w-full max-w-2xl rounded-2xl bg-lp-surface-container-lowest shadow-xl">
-        <div className="flex items-start justify-between gap-3 p-6 pb-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="flex items-center gap-1.5 text-base font-bold text-lp-on-surface">
+            <Icon name="edit_note" className="text-[18px] text-lp-primary" />
+            Detail &amp; Modifier Produk
+          </span>
+          <span className="text-xs text-lp-tertiary">
+            {editing ? (
+              <>
+                Mengedit:{' '}
+                <strong className="text-lp-on-surface">
+                  {product.name}
+                  {product.sku ? ` (${product.sku})` : ''}
+                </strong>
+              </>
+            ) : (
+              'Produk baru — belum tersimpan di katalog.'
+            )}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Tutup panel"
+          className="rounded-lg bg-lp-surface-low p-1.5 text-lp-on-surface-variant transition hover:bg-lp-surface-container hover:text-lp-on-surface"
+        >
+          <Icon name="close" className="text-[18px]" />
+        </button>
+      </div>
+
+      {editing ? (
+        <div className="rounded-xl bg-lp-surface-low p-2.5">
+          <PhotoEditor productId={product.id} photoUrl={product.photoUrl} />
+        </div>
+      ) : (
+        <NeedsSaved label="foto menu POS" />
+      )}
+
+      <div className="flex flex-col gap-3">
+        <div>
+          <label htmlFor="p-name" className={labelCls}>
+            Nama Produk
+          </label>
+          <input
+            id="p-name"
+            {...register('name')}
+            aria-invalid={!!errors.name}
+            className={inputCls}
+          />
+          <FieldError message={errors.name?.message} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <h2 className="text-lg font-bold text-lp-on-surface">
-              {editing ? 'Detail & Modifier Produk' : 'Tambah Produk Baru'}
-            </h2>
-            <p className="text-xs text-lp-tertiary">
-              {editing
-                ? `Mengedit: ${product?.name}${product?.sku ? ` (${product.sku})` : ''}`
-                : 'Produk langsung masuk katalog outlet ini.'}
-            </p>
+            <label htmlFor="p-category" className={labelCls}>
+              Kategori
+            </label>
+            <select
+              id="p-category"
+              {...register('categoryId')}
+              className={inputCls}
+            >
+              <option value="">Tanpa kategori</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <FieldError />
+          </div>
+
+          <div>
+            <label htmlFor="p-sku" className={labelCls}>
+              SKU / Kode POS
+            </label>
+            <input
+              id="p-sku"
+              {...register('sku')}
+              placeholder="KOP-001"
+              aria-invalid={!!errors.sku}
+              className={`${inputCls} font-lp-mono`}
+            />
+            <FieldError message={errors.sku?.message} />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="p-price" className={labelCls}>
+            Harga Dasar (Rp)
+          </label>
+          <input
+            id="p-price"
+            {...register('basePrice', { valueAsNumber: true })}
+            type="number"
+            min={0}
+            step={100}
+            inputMode="numeric"
+            aria-invalid={!!errors.basePrice}
+            className={`${inputCls} font-lp-mono`}
+          />
+          <FieldError message={errors.basePrice?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="p-desc" className={labelCls}>
+            Deskripsi Singkat (Tampil di Nota &amp; Tablet)
+          </label>
+          <textarea
+            id="p-desc"
+            {...register('description')}
+            rows={2}
+            placeholder="Tampil di nota & tablet kasir"
+            className={`${inputCls} resize-none`}
+          />
+          <FieldError />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-lp-surface-container pt-3">
+        <SectionHeading icon="straighten" title="Varian Ukuran" />
+        {editing ? (
+          <VariantEditor productId={product.id} />
+        ) : (
+          <NeedsSaved label="varian ukuran" />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-lp-surface-container pt-3">
+        <SectionHeading icon="tune" title="Modifier Group (Pilihan Tambahan)" />
+        {editing ? (
+          <ModifierEditor productId={product.id} />
+        ) : (
+          <NeedsSaved label="modifier" />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-4 border-t border-lp-surface-container pt-3">
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-lp-primary/10 p-3">
+          <div className="flex items-center gap-2.5">
+            <Icon name="point_of_sale" className="text-[22px] text-lp-primary" />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-lp-on-surface">
+                Tampil di Menu POS Kasir
+              </span>
+              <span className="text-xs text-lp-tertiary">
+                Produk dapat langsung dipesan oleh kasir
+              </span>
+            </div>
           </div>
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Tutup"
-            className="rounded-lg p-1.5 text-lp-on-surface-variant hover:bg-lp-surface-container"
+            role="switch"
+            aria-checked={isAvailable}
+            aria-label="Tampil di menu POS kasir"
+            onClick={() => setValue('isAvailable', !isAvailable)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+              isAvailable ? 'bg-lp-primary' : 'bg-lp-surface-container-highest'
+            }`}
           >
-            <Icon name="close" className="text-[20px]" />
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${
+                isAvailable ? 'left-[22px]' : 'left-0.5'
+              }`}
+            />
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-1 border-b border-lp-surface-container px-6">
-          {tabs.map((item) => {
-            const disabled = !editing && item.id !== 'detail';
-            return (
-              <button
-                key={item.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => setTab(item.id)}
-                title={disabled ? 'Simpan produk dulu' : undefined}
-                className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-semibold transition ${
-                  tab === item.id
-                    ? 'border-lp-primary text-lp-primary'
-                    : 'border-transparent text-lp-on-surface-variant hover:text-lp-on-surface'
-                } disabled:cursor-not-allowed disabled:opacity-40`}
-              >
-                <Icon name={item.icon} className="text-[18px]" />
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
+        {errorMessage && (
+          <div
+            role="alert"
+            className="rounded-lg bg-lp-error-container px-3 py-2 text-xs font-medium text-lp-on-error-container"
+          >
+            {errorMessage}
+          </div>
+        )}
 
-        <div className="p-6">
-          {tab === 'detail' && (
-            <form onSubmit={submit} noValidate className="space-y-1">
-              <div>
-                <label htmlFor="p-name" className={labelCls}>
-                  Nama Produk
-                </label>
-                <input
-                  id="p-name"
-                  {...register('name')}
-                  autoFocus
-                  aria-invalid={!!errors.name}
-                  className={inputCls}
-                />
-                <FieldError message={errors.name?.message} />
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="p-category" className={labelCls}>
-                    Kategori
-                  </label>
-                  <select
-                    id="p-category"
-                    {...register('categoryId')}
-                    className={inputCls}
-                  >
-                    <option value="">Tanpa kategori</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                  <FieldError />
-                </div>
-
-                <div>
-                  <label htmlFor="p-price" className={labelCls}>
-                    Harga Dasar (Rp)
-                  </label>
-                  <input
-                    id="p-price"
-                    {...register('basePrice', { valueAsNumber: true })}
-                    type="number"
-                    min={0}
-                    step={100}
-                    inputMode="numeric"
-                    aria-invalid={!!errors.basePrice}
-                    className={inputCls}
-                  />
-                  <FieldError message={errors.basePrice?.message} />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="p-sku" className={labelCls}>
-                  SKU / Kode POS
-                </label>
-                <input
-                  id="p-sku"
-                  {...register('sku')}
-                  placeholder="KOP-001"
-                  aria-invalid={!!errors.sku}
-                  className={inputCls}
-                />
-                <FieldError message={errors.sku?.message} />
-              </div>
-
-              <div>
-                <label htmlFor="p-desc" className={labelCls}>
-                  Deskripsi Singkat
-                </label>
-                <textarea
-                  id="p-desc"
-                  {...register('description')}
-                  rows={2}
-                  placeholder="Tampil di nota & tablet kasir"
-                  className={inputCls}
-                />
-                <FieldError />
-              </div>
-
-              <label className="flex items-center gap-2 pt-1 text-sm text-lp-on-surface">
-                <input
-                  type="checkbox"
-                  {...register('isAvailable')}
-                  className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                />
-                Aktif &amp; dijual di POS
-              </label>
-
-              {errorMessage && (
-                <div
-                  role="alert"
-                  className="mt-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
-                >
-                  {errorMessage}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-lg px-4 py-2.5 text-sm font-semibold text-lp-on-surface-variant hover:bg-lp-surface-container"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Icon name="check" className="text-[18px]" />
-                  {pending
-                    ? 'Menyimpan…'
-                    : editing
-                      ? 'Simpan Perubahan'
-                      : 'Tambah Produk'}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {editing && tab === 'photo' && (
-            <PhotoEditor productId={product.id} photoUrl={product.photoUrl} />
-          )}
-          {editing && tab === 'variants' && (
-            <VariantEditor productId={product.id} />
-          )}
-          {editing && tab === 'modifiers' && (
-            <ModifierEditor productId={product.id} />
-          )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 flex-1 rounded-lg bg-lp-surface-low text-sm font-semibold text-lp-on-surface transition hover:bg-lp-surface-container"
+          >
+            Batalkan
+          </button>
+          <button
+            type="submit"
+            disabled={pending}
+            className="flex h-11 flex-[2] items-center justify-center gap-1.5 rounded-lg bg-lp-primary text-sm font-bold text-lp-on-primary shadow-md transition hover:bg-lp-primary-container disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Icon name="check_circle" className="text-[18px]" />
+            {pending
+              ? 'Menyimpan…'
+              : editing
+                ? 'Simpan Perubahan'
+                : 'Tambah Produk'}
+          </button>
         </div>
       </div>
-    </div>
+    </form>
   );
 }

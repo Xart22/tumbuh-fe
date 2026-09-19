@@ -24,7 +24,7 @@ export const variantSchema = z.object({
 });
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20';
+  'w-full rounded-lg bg-lp-surface-low px-2.5 py-1.5 text-sm text-lp-on-surface outline-none placeholder:text-lp-on-surface-variant focus:bg-lp-surface-container';
 
 /** Size/portion variants for one product. BE: /v1/product-variants. */
 export function VariantEditor({ productId }: { productId: string }) {
@@ -120,7 +120,7 @@ export function VariantEditor({ productId }: { productId: string }) {
           variants.map((variant) => (
             <div
               key={variant.id}
-              className="flex items-center gap-2 rounded-lg bg-lp-surface-container-low p-2"
+              className="flex items-center gap-2 rounded-lg bg-lp-surface-low p-2"
             >
               {editingId === variant.id ? (
                 <>
@@ -177,7 +177,7 @@ export function VariantEditor({ productId }: { productId: string }) {
                           isActive: event.target.checked,
                         })
                       }
-                      className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600"
+                      className="h-3.5 w-3.5 rounded border-lp-outline-variant text-lp-primary"
                     />
                     Aktif
                   </label>

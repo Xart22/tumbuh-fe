@@ -61,7 +61,7 @@ export function PhotoEditor({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-4">
-        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-lp-outline-variant bg-lp-surface-container-low">
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-lp-outline-variant bg-lp-surface-low">
           {current ? (
             // Plain <img>: the BE serves an arbitrary upload path, so next/image
             // remote patterns + optimisation aren't worth it here.
@@ -85,7 +85,7 @@ export function PhotoEditor({
           <p className="text-[11px] text-lp-tertiary">
             Format JPG, PNG, WebP max 5MB. Dimensi 1:1 direkomendasikan.
           </p>
-          <label className="mt-1 inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg bg-lp-surface-container-low px-3 py-1.5 text-xs font-semibold text-lp-on-surface hover:bg-lp-surface-container">
+          <label className="mt-1 inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg bg-lp-surface-low px-3 py-1.5 text-xs font-semibold text-lp-on-surface hover:bg-lp-surface-container">
             <Icon name="photo_camera" className="text-[16px]" />
             Pilih Foto
             <input
@@ -113,7 +113,7 @@ export function PhotoEditor({
       )}
 
       {file && (
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-lp-surface-container-low p-2">
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-lp-surface-low p-2">
           <span className="truncate text-xs text-lp-on-surface">
             {file.name}
           </span>
