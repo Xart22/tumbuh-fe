@@ -757,3 +757,114 @@ export type EmployeeSalesReport = {
     }>;
   }>;
 };
+
+// --- Karyawan & Shift -----------------------------------------------------
+
+export const EMPLOYEE_ROLES = [
+  'cashier',
+  'supervisor',
+  'manager',
+  'chef',
+] as const;
+
+export type EmployeeRole = (typeof EMPLOYEE_ROLES)[number];
+
+export const EMPLOYEE_ROLE_LABELS: Record<EmployeeRole, string> = {
+  cashier: 'Kasir',
+  supervisor: 'Supervisor',
+  manager: 'Manajer',
+  chef: 'Chef',
+};
+
+export type Employee = {
+  id: string;
+  name: string;
+  phone: string | null;
+  role: string;
+  isActive: boolean;
+  joinedAt?: string | null;
+};
+
+export type EmployeeOutlet = {
+  outletId: string;
+  outletName: string | null;
+  roleOverride: string | null;
+};
+
+export type ShiftRecap = {
+  orderCount: number;
+  grossSales: number;
+  totalPayments: number;
+  cashSales: number;
+  cashChange: number;
+  totalExpenses: number;
+  expectedCash: number;
+};
+
+export type Shift = {
+  id: string;
+  outletId: string;
+  employeeId: string;
+  employeeName: string | null;
+  shiftName: string | null;
+  openedAt: string;
+  closedAt: string | null;
+  openingCash: number;
+  closingCash: number | null;
+  expectedCash: number | null;
+  status: string;
+};
+
+export type CurrentShift =
+  | { currentShift: null }
+  | { currentShift: Shift; recap: ShiftRecap };
+
+export type ShiftCloseResult = {
+  shift: Shift;
+  recap: ShiftRecap & { difference: number };
+};
+
+export type ScheduleStatus = 'scheduled' | 'swap_pending' | 'approved';
+
+export type ShiftSchedule = {
+  id: string;
+  employeeId: string;
+  employeeName: string | null;
+  scheduleDate: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  notes: string | null;
+  swapWithId: string | null;
+};
+
+export type Attendance = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  clockIn: string;
+  clockOut: string | null;
+  hoursWorked: number | null;
+  status: string;
+  gps: { lat: number; lng: number } | null;
+  distanceMeters: number | null;
+  photoUrl: string | null;
+};
+
+export type ClockInResult = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  clockIn: string;
+  status: string;
+  gps: { lat: number; lng: number } | null;
+  distanceMeters: number;
+  photoUrl: string | null;
+};
+
+export type ClockOutResult = {
+  id: string;
+  employeeId: string;
+  clockOut: string;
+  hoursWorked: number;
+};

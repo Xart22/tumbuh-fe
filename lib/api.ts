@@ -58,6 +58,15 @@ import type {
   CategorySalesRow,
   CashierSalesRow,
   EmployeeSalesReport,
+  Employee,
+  EmployeeOutlet,
+  Shift,
+  CurrentShift,
+  ShiftCloseResult,
+  ShiftSchedule,
+  Attendance,
+  ClockInResult,
+  ClockOutResult,
 } from './types';
 
 export type { OwnerLoginResult, WorkspaceOption };
@@ -1102,6 +1111,196 @@ export function downloadTopProducts(
   return apiDownloadBlob(
     `/v1/reports/top-products/export?dateFrom=${dateFrom}&dateTo=${dateTo}&top=${top}`,
   );
+}
+
+// --- Karyawan & Shift -----------------------------------------------------
+
+export function listEmployees(): Promise<Employee[]> {
+  return apiFetch<Employee[]>('/v1/employees');
+}
+
+export type EmployeeInput = {
+  name: string;
+  phone?: string;
+  role: string;
+  pin: string;
+};
+
+export function createEmployee(input: EmployeeInput): Promise<Employee> {
+  return apiFetch<Employee>('/v1/employees', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export type EmployeeUpdate = {
+  name?: string;
+  phone?: string;
+  role?: string;
+  pin?: string;
+  isActive?: boolean;
+};
+
+export function updateEmployee(
+  id: string,
+  input: EmployeeUpdate,
+): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/v1/employees/${id}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export function deleteEmployee(id: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/v1/employees/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function getEmployeeOutlets(id: string): Promise<EmployeeOutlet[]> {
+  return apiFetch<EmployeeOutlet[]>(`/v1/employees/${id}/outlets`);
+}
+
+export function setEmployeeOutlets(
+  id: string,
+  outletIds: string[],
+): Promise<EmployeeOutlet[]> {
+  return apiFetch<EmployeeOutlet[]>(`/v1/employees/${id}/outlets`, {
+    method: 'POST',
+    body: { outletIds },
+  });
+}
+
+export function listShifts(params?: {
+  status?: string;
+  limit?: number;
+}): Promise<Shift[]> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set('status', params.status);
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return apiFetch<Shift[]>(`/v1/shifts${qs ? `?${qs}` : ''}`);
+}
+
+export function currentShift(): Promise<CurrentShift> {
+  return apiFetch<CurrentShift>('/v1/shifts/current');
+}
+
+export function openShift(input: {
+  employeeId: string;
+  shiftName?: string;
+  openingCash?: number;
+}): Promise<Shift> {
+  return apiFetch<Shift>('/v1/shifts/open', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function closeShift(
+  shiftId: string,
+  closingCash: number,
+): Promise<ShiftCloseResult> {
+  return apiFetch<ShiftCloseResult>(`/v1/shifts/${shiftId}/close`, {
+    method: 'PATCH',
+    body: { closingCash },
+  });
+}
+
+export function listSchedules(
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<ShiftSchedule[]> {
+  const query = new URLSearchParams();
+  if (dateFrom) query.set('dateFrom', dateFrom);
+  if (dateTo) query.set('dateTo', dateTo);
+  const qs = query.toString();
+  return apiFetch<ShiftSchedule[]>(
+    `/v1/shift-schedules${qs ? `?${qs}` : ''}`,
+  );
+}
+
+/** Schedules for the week starting on `date` (YYYY-MM-DD). */
+export function scheduleWeek(date: string): Promise<ShiftSchedule[]> {
+  return apiFetch<ShiftSchedule[]>(
+    `/v1/shift-schedules/week?date=${date}`,
+  );
+}
+
+export function createSchedule(input: {
+  employeeId: string;
+  scheduleDate: string;
+  startTime: string;
+  endTime: string;
+  notes?: string;
+}): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>('/v1/shift-schedules', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function copyScheduleWeek(date: string): Promise<{ copied: number }> {
+  return apiFetch<{ copied: number }>('/v1/shift-schedules/copy-week', {
+    method: 'POST',
+    body: { date },
+  });
+}
+
+export function requestScheduleSwap(
+  id: string,
+  targetScheduleId: string,
+): Promise<{ id: string; status: string; swapWithId: string }> {
+  return apiFetch(`/v1/shift-schedules/${id}/swap`, {
+    method: 'POST',
+    body: { targetScheduleId },
+  });
+}
+
+export function approveScheduleSwap(
+  id: string,
+): Promise<{ id: string; swappedWith: string; status: string }> {
+  return apiFetch(`/v1/shift-schedules/${id}/swap-approve`, {
+    method: 'POST',
+  });
+}
+
+export function deleteSchedule(
+  id: string,
+): Promise<{ id: string; deleted: true }> {
+  return apiFetch(`/v1/shift-schedules/${id}`, { method: 'DELETE' });
+}
+
+export function listAttendances(params?: {
+  dateFrom?: string;
+  dateTo?: string;
+  employeeId?: string;
+}): Promise<Attendance[]> {
+  const query = new URLSearchParams();
+  if (params?.dateFrom) query.set('dateFrom', params.dateFrom);
+  if (params?.dateTo) query.set('dateTo', params.dateTo);
+  if (params?.employeeId) query.set('employeeId', params.employeeId);
+  const qs = query.toString();
+  return apiFetch<Attendance[]>(`/v1/attendances${qs ? `?${qs}` : ''}`);
+}
+
+export function clockIn(input: {
+  employeeId: string;
+  gpsLat?: number;
+  gpsLng?: number;
+  photoUrl?: string;
+}): Promise<ClockInResult> {
+  return apiFetch<ClockInResult>('/v1/attendances/clock-in', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function clockOut(employeeId: string): Promise<ClockOutResult> {
+  return apiFetch<ClockOutResult>('/v1/attendances/clock-out', {
+    method: 'POST',
+    body: { employeeId },
+  });
 }
 
 // --- Search ---------------------------------------------------------------
