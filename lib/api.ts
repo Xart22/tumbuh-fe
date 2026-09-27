@@ -67,6 +67,14 @@ import type {
   Attendance,
   ClockInResult,
   ClockOutResult,
+  Customer,
+  CustomerDetail,
+  CustomerAnalytics,
+  CustomerSegments,
+  BirthdayCustomer,
+  StampCard,
+  Voucher,
+  VoucherValidation,
 } from './types';
 
 export type { OwnerLoginResult, WorkspaceOption };
@@ -1301,6 +1309,147 @@ export function clockOut(employeeId: string): Promise<ClockOutResult> {
     method: 'POST',
     body: { employeeId },
   });
+}
+
+// --- CRM & Voucher --------------------------------------------------------
+
+export function listCustomers(params?: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<Paginated<Customer>> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set('search', params.search);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return apiFetch<Paginated<Customer>>(`/v1/customers${qs ? `?${qs}` : ''}`);
+}
+
+export type CustomerInput = {
+  name: string;
+  phone: string;
+  email?: string;
+  birthDate?: string;
+  notes?: string;
+  referralCode?: string;
+};
+
+export function createCustomer(input: CustomerInput): Promise<{
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  tier: string;
+  referralCode: string;
+}> {
+  return apiFetch('/v1/customers', { method: 'POST', body: input });
+}
+
+export function getCustomer(id: string): Promise<CustomerDetail> {
+  return apiFetch<CustomerDetail>(`/v1/customers/${id}`);
+}
+
+export function getCustomerAnalytics(
+  id: string,
+  days = 90,
+): Promise<CustomerAnalytics> {
+  return apiFetch<CustomerAnalytics>(
+    `/v1/customers/${id}/analytics?days=${days}`,
+  );
+}
+
+export function getCustomerStampCard(id: string): Promise<StampCard> {
+  return apiFetch<StampCard>(`/v1/customers/${id}/stamp-card`);
+}
+
+export function redeemStampReward(
+  id: string,
+): Promise<{ customerId: string; rewardsEarned: number }> {
+  return apiFetch(`/v1/customers/${id}/stamp-card/redeem`, { method: 'POST' });
+}
+
+export function getCustomerSegments(days = 90): Promise<CustomerSegments> {
+  return apiFetch<CustomerSegments>(`/v1/customers/segments?days=${days}`);
+}
+
+export function getCustomerBirthdays(
+  month: number,
+): Promise<BirthdayCustomer[]> {
+  return apiFetch<BirthdayCustomer[]>(
+    `/v1/customers/birthdays?month=${month}`,
+  );
+}
+
+export function updateCustomerTags(
+  id: string,
+  tags: string[],
+): Promise<{ id: string; tags: string[] }> {
+  return apiFetch(`/v1/customers/${id}/tags`, {
+    method: 'PATCH',
+    body: { tags },
+  });
+}
+
+export function redeemCustomerPoints(
+  id: string,
+  points: number,
+): Promise<{ id: string; redeemed: number; remainingPoints: number }> {
+  return apiFetch(`/v1/customers/${id}/redeem`, {
+    method: 'POST',
+    body: { points },
+  });
+}
+
+export function listVouchers(params?: {
+  code?: string;
+  page?: number;
+  limit?: number;
+}): Promise<Paginated<Voucher>> {
+  const query = new URLSearchParams();
+  if (params?.code) query.set('code', params.code);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return apiFetch<Paginated<Voucher>>(`/v1/vouchers${qs ? `?${qs}` : ''}`);
+}
+
+export type VoucherInput = {
+  code: string;
+  name: string;
+  type: string;
+  value: number;
+  minOrder?: number;
+  maxDiscount?: number;
+  maxUses?: number;
+  expiresAt?: string;
+};
+
+export function createVoucher(input: VoucherInput): Promise<{
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  value: number;
+}> {
+  return apiFetch('/v1/vouchers', { method: 'POST', body: input });
+}
+
+export function validateVoucher(
+  code: string,
+  orderTotal: number,
+): Promise<VoucherValidation> {
+  return apiFetch<VoucherValidation>('/v1/vouchers/validate', {
+    method: 'POST',
+    body: { code, orderTotal },
+  });
+}
+
+export function updateVoucher(
+  id: string,
+  input: { isActive?: boolean; maxUses?: number; expiresAt?: string },
+): Promise<{ id: string }> {
+  return apiFetch(`/v1/vouchers/${id}`, { method: 'PATCH', body: input });
 }
 
 // --- Search ---------------------------------------------------------------

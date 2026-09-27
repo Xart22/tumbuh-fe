@@ -868,3 +868,112 @@ export type ClockOutResult = {
   clockOut: string;
   hoursWorked: number;
 };
+
+// --- CRM & Voucher --------------------------------------------------------
+
+export const CUSTOMER_TIERS = ['bronze', 'silver', 'gold', 'platinum'] as const;
+export type CustomerTier = (typeof CUSTOMER_TIERS)[number];
+
+export type Customer = {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  totalPoints: number;
+  tier: string;
+  createdAt: string;
+};
+
+export type CustomerVisit = {
+  id: string;
+  outletId: string;
+  orderId: string | null;
+  pointsEarned: number;
+  pointsRedeemed: number;
+  visitedAt: string;
+};
+
+export type CustomerDetail = Customer & {
+  birthDate: string | null;
+  notes: string | null;
+  visits: CustomerVisit[];
+};
+
+export type CustomerAnalytics = {
+  customerId: string;
+  name: string;
+  tier: string;
+  totalPoints: number;
+  days: number;
+  visitCount: number;
+  totalSpending: number;
+  averageOrderValue: number;
+  lastVisitAt: string | null;
+  favoriteProducts: Array<{
+    productId: string;
+    productName: string;
+    qty: number;
+    revenue: number;
+  }>;
+};
+
+export type CustomerSegmentRow = {
+  customerId: string;
+  name: string;
+  visitCount: number;
+  spending: number;
+  totalPoints: number;
+};
+
+export type CustomerSegments = {
+  outletId: string;
+  days: number;
+  counts: { new: number; regular: number; vip: number };
+  segments: {
+    new: CustomerSegmentRow[];
+    regular: CustomerSegmentRow[];
+    vip: CustomerSegmentRow[];
+  };
+};
+
+export type BirthdayCustomer = {
+  customerId: string;
+  name: string;
+  phone: string | null;
+  birthDate: string;
+};
+
+export type StampCard = {
+  id: string | null;
+  stamps: number;
+  threshold: number;
+  rewardsEarned: number;
+  mode: string;
+};
+
+export const VOUCHER_TYPES = ['percent', 'fixed'] as const;
+export type VoucherType = (typeof VOUCHER_TYPES)[number];
+
+export type Voucher = {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  value: number;
+  minOrder: number;
+  maxDiscount: number | null;
+  maxUses: number | null;
+  usedCount: number;
+  expiresAt: string | null;
+};
+
+export type VoucherValidation = {
+  valid: true;
+  voucherId: string;
+  code: string;
+  voucherName: string;
+  type: string;
+  value: number;
+  discountAmount: number;
+  finalTotal: number;
+};
