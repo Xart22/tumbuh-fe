@@ -33,7 +33,7 @@ import {
   type ShiftSchedule,
 } from '@/lib/types';
 import { EmployeeFormModal, type EmployeeFormValues } from './employee-form';
-import { Overlay } from './overlay';
+import { Overlay } from '@/components/overlay';
 import { ScheduleFormModal, type ScheduleFormValues } from './schedule-form';
 
 type Tab = 'karyawan' | 'shift' | 'jadwal' | 'absensi';

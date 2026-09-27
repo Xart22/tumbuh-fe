@@ -9,7 +9,7 @@ import {
   EMPLOYEE_ROLE_LABELS,
   type Employee,
 } from '@/lib/types';
-import { Overlay } from './overlay';
+import { Overlay } from '@/components/overlay';
 
 export const employeeSchema = z.object({
   name: z.string().trim().min(1, 'Nama wajib diisi.'),

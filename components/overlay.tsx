@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Icon } from '@/components/icon';
 
+/** Centered modal shell for backoffice forms. Closes on Escape / backdrop. */
 export function Overlay({
   title,
   subtitle,

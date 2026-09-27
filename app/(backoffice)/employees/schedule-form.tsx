@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
 import type { Employee } from '@/lib/types';
-import { Overlay } from './overlay';
+import { Overlay } from '@/components/overlay';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
