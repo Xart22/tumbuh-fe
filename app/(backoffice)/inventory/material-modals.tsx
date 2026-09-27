@@ -20,6 +20,13 @@ const nonNegInt = (label: string) =>
     .number({ error: `${label} harus berupa angka.` })
     .min(0, `${label} tidak boleh negatif.`);
 
+/** Harga per satuan stok = harga satu satuan beli ÷ isi kemasan. */
+export function stockUnitCost(purchasePrice: number, packSize: number): number {
+  if (!Number.isFinite(purchasePrice) || !Number.isFinite(packSize)) return 0;
+  if (purchasePrice <= 0 || packSize <= 0) return 0;
+  return Math.round((purchasePrice / packSize) * 100) / 100;
+}
+
 export const materialSchema = z.object({
   name: z.string().trim().min(1, 'Nama bahan wajib diisi.'),
   sku: z.string().trim().max(100, 'SKU maksimal 100 karakter.').optional(),
@@ -36,6 +43,7 @@ export const materialSchema = z.object({
     .min(0.000001, 'Isi kemasan harus lebih dari 0.'),
   stockQty: nonNegInt('Stok'),
   minStockQty: nonNegInt('Stok minimum'),
+  purchasePrice: nonNegInt('Harga beli'),
   costPerUnit: nonNegInt('Harga per satuan'),
 });
 
@@ -269,6 +277,7 @@ export function MaterialFormModal({
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<MaterialFormValues>({
     resolver: zodResolver(materialSchema),
@@ -282,6 +291,7 @@ export function MaterialFormModal({
       packSize: material?.packSize ?? 1,
       stockQty: material?.stockQty ?? 0,
       minStockQty: material?.minStockQty ?? 0,
+      purchasePrice: 0,
       costPerUnit: material?.costPerUnit ?? 0,
     },
   });
@@ -289,8 +299,18 @@ export function MaterialFormModal({
   const stockUnitId = useWatch({ control, name: 'stockUnitId' });
   const purchaseUnitId = useWatch({ control, name: 'purchaseUnitId' });
   const packSize = useWatch({ control, name: 'packSize' });
+  const purchasePrice = useWatch({ control, name: 'purchasePrice' });
+  const stockQty = useWatch({ control, name: 'stockQty' });
+  const costPerUnit = useWatch({ control, name: 'costPerUnit' });
   const stockUnit = units.find((unit) => unit.id === stockUnitId);
   const purchaseUnit = units.find((unit) => unit.id === purchaseUnitId);
+
+  // Buying price of one purchase unit is the number users know; the per-stock
+  // unit cost that HPP needs is derived from it (still overridable).
+  useEffect(() => {
+    const derived = stockUnitCost(purchasePrice ?? 0, packSize ?? 0);
+    if (derived > 0) setValue('costPerUnit', derived);
+  }, [purchasePrice, packSize, setValue]);
 
   return (
     <Overlay
@@ -402,6 +422,36 @@ export function MaterialFormModal({
           </p>
         )}
 
+        {purchaseUnit && stockUnit && (
+          <div>
+            <label htmlFor="m-buy-price" className={labelCls}>
+              Harga beli per {purchaseUnit.name}
+            </label>
+            <input
+              id="m-buy-price"
+              {...register('purchasePrice', { valueAsNumber: true })}
+              type="number"
+              min={0}
+              step={100}
+              placeholder="130000"
+              aria-invalid={!!errors.purchasePrice}
+              className={inputCls}
+            />
+            <FieldError message={errors.purchasePrice?.message} />
+            {stockUnitCost(purchasePrice ?? 0, packSize ?? 0) > 0 && (
+              <p className="text-[11px] text-lp-on-surface-variant">
+                Harga / {stockUnit.name} dihitung otomatis:{' '}
+                <span className="font-lp-mono">
+                  Rp{' '}
+                  {stockUnitCost(purchasePrice ?? 0, packSize ?? 0).toLocaleString(
+                    'id-ID',
+                  )}
+                </span>
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="m-cost" className={labelCls}>
@@ -434,6 +484,13 @@ export function MaterialFormModal({
             <FieldError message={errors.minStockQty?.message} />
           </div>
         </div>
+
+        {stockQty > 0 && (costPerUnit ?? 0) === 0 && (
+          <p className="rounded-lg bg-lp-secondary-container/20 px-3 py-2 text-[11px] text-lp-on-secondary-container">
+            Stok awal {stockQty} tapi harga 0 — HPP, food cost, dan nilai
+            persediaan bahan ini akan terbaca 0 sampai ada penerimaan pembelian.
+          </p>
+        )}
 
         {!editing && (
           <div>

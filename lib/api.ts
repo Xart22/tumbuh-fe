@@ -36,6 +36,7 @@ import type {
   StockOpnameItem,
   StockOpnameSummary,
   Supplier,
+  StockForecast,
   TopProduct,
   Unit,
   UnitFamily,
@@ -643,6 +644,16 @@ export function inventoryValuation(): Promise<InventoryValuation> {
   return apiFetch<InventoryValuation>('/v1/reports/inventory-valuation');
 }
 
+/** Usage velocity per material (`avgDailyUsage`, `daysOfStockLeft`). */
+export function stockForecast(
+  windowDays = 7,
+  leadTimeDays = 3,
+): Promise<StockForecast[]> {
+  return apiFetch<StockForecast[]>(
+    `/v1/reports/stock-forecast?windowDays=${windowDays}&leadTimeDays=${leadTimeDays}`,
+  );
+}
+
 /** Revenue, COGS and gross profit for a period. */
 export function profitSummary(
   dateFrom: string,
@@ -895,13 +906,6 @@ export function hourlyForecast(date: string): Promise<HourlyForecastRow[]> {
       expectedRevenue: bucket.expectedRevenue ?? 0,
     })),
   );
-}
-
-export function paymentMethodsBreakdown(
-  dateFrom: string,
-  dateTo: string,
-): Promise<PaymentMethodRow[]> {
-  return paymentMethodsReport(dateFrom, dateTo).then((report) => report.methods);
 }
 
 export type PaymentMethodsReport = {

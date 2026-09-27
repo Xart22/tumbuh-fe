@@ -35,6 +35,7 @@ type DraftItem = { rawMaterialId: string; qtyOrdered: string; unitPrice: string 
 export function CreatePoModal({
   suppliers,
   materials,
+  initialItems,
   pending,
   errorMessage,
   onClose,
@@ -42,6 +43,8 @@ export function CreatePoModal({
 }: {
   suppliers: Supplier[];
   materials: RawMaterial[];
+  /** Lines prefilled by the materials tab (+PO / Buat PO Massal). */
+  initialItems?: DraftItem[] | null;
   pending: boolean;
   errorMessage?: string | null;
   onClose: () => void;
@@ -53,9 +56,11 @@ export function CreatePoModal({
 }) {
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? '');
   const [expectedDate, setExpectedDate] = useState('');
-  const [items, setItems] = useState<DraftItem[]>([
-    { rawMaterialId: materials[0]?.id ?? '', qtyOrdered: '1', unitPrice: '' },
-  ]);
+  const [items, setItems] = useState<DraftItem[]>(
+    initialItems && initialItems.length > 0
+      ? initialItems
+      : [{ rawMaterialId: materials[0]?.id ?? '', qtyOrdered: '1', unitPrice: '' }],
+  );
   const [error, setError] = useState<string | null>(null);
 
   const total = items.reduce((sum, item) => {

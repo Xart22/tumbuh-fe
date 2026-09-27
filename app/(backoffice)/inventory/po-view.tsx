@@ -41,13 +41,22 @@ function poStatusChip(status: string): string {
 export function PurchaseOrderView({
   materials,
   canWrite,
+  initialItems,
+  onInitialItemsConsumed,
 }: {
   materials: RawMaterial[];
   canWrite: boolean;
+  /** Lines handed over from the materials tab (+PO / Buat PO Massal). */
+  initialItems?: Array<{
+    rawMaterialId: string;
+    qtyOrdered: string;
+    unitPrice: string;
+  }> | null;
+  onInitialItemsConsumed?: () => void;
 }) {
   const queryClient = useQueryClient();
   const currentOutletId = useAuthStore((s) => s.outletId);
-  const [poModal, setPoModal] = useState(false);
+  const [poModal, setPoModal] = useState(initialItems ? true : false);
   const [poError, setPoError] = useState<string | null>(null);
   const [selectedPo, setSelectedPo] = useState<string | null>(null);
   const [distributePo, setDistributePo] = useState<PurchaseOrder | null>(null);
@@ -350,9 +359,13 @@ export function PurchaseOrderView({
         <CreatePoModal
           suppliers={suppliers}
           materials={materials}
+          initialItems={initialItems ?? null}
           pending={createPoM.isPending}
           errorMessage={poError}
-          onClose={() => setPoModal(false)}
+          onClose={() => {
+            setPoModal(false);
+            onInitialItemsConsumed?.();
+          }}
           onSubmit={(values) => createPoM.mutate(values)}
         />
       )}

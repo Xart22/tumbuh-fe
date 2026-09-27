@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { materialSchema, stockAdjustSchema } from './material-modals';
+import {
+  materialSchema,
+  stockAdjustSchema,
+  stockUnitCost,
+} from './material-modals';
 
 describe('materialSchema', () => {
   const base = {
@@ -9,6 +13,7 @@ describe('materialSchema', () => {
     packSize: 12,
     stockQty: 4.2,
     minStockQty: 15,
+    purchasePrice: 234000,
     costPerUnit: 19500,
   };
 
@@ -50,5 +55,22 @@ describe('stockAdjustSchema', () => {
   it('accepts positive and negative deltas', () => {
     expect(stockAdjustSchema.safeParse({ qty: 12 }).success).toBe(true);
     expect(stockAdjustSchema.safeParse({ qty: -3.5 }).success).toBe(true);
+  });
+});
+
+describe('stockUnitCost', () => {
+  it('divides the price of one purchase unit by the pack size', () => {
+    expect(stockUnitCost(130000, 1000)).toBe(130);
+    expect(stockUnitCost(45000, 250)).toBe(180);
+  });
+
+  it('rounds to 2 decimals like money', () => {
+    expect(stockUnitCost(10000, 3)).toBe(3333.33);
+  });
+
+  it('falls back to 0 when the price or pack size is unusable', () => {
+    expect(stockUnitCost(0, 1000)).toBe(0);
+    expect(stockUnitCost(10000, 0)).toBe(0);
+    expect(stockUnitCost(Number.NaN, 10)).toBe(0);
   });
 });

@@ -331,6 +331,21 @@ export type RawMaterial = {
   costPerUnit: number;
   expiresAt?: string | null;
   status?: RawMaterialStatus;
+  /** Unit price of the latest PO line for this material (traceability only). */
+  lastUnitPrice?: number | null;
+  lastSupplierName?: string | null;
+};
+
+/** `/v1/reports/stock-forecast` — usage velocity per material. */
+export type StockForecast = {
+  rawMaterialId: string;
+  rawMaterialName: string;
+  unit: string;
+  stockQty: number;
+  avgDailyUsage: number;
+  forecastNeed: number;
+  daysOfStockLeft: number | null;
+  shortage: boolean;
 };
 
 export type RecipeItem = {
@@ -340,6 +355,8 @@ export type RecipeItem = {
   qtyUsed: number;
   unit: string;
   rawMaterialUnit?: string;
+  /** Moving-average cost per stock unit (`/v1/inventory/recipes/...`). */
+  costPerUnit?: number;
 };
 
 export type Recipe = {
