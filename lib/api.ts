@@ -43,6 +43,21 @@ import type {
   WasteReason,
   WasteRecord,
   WorkspaceOption,
+  ProfitLossReport,
+  CashFlowReport,
+  OutletComparison,
+  BreakEvenReport,
+  TaxSummaryReport,
+  WasteReport,
+  PayrollRow,
+  MenuEngineeringReport,
+  ByTableReport,
+  ByOrderTypeReport,
+  DiscountsVoidsReport,
+  ProductTrendReport,
+  CategorySalesRow,
+  CashierSalesRow,
+  EmployeeSalesReport,
 } from './types';
 
 export type { OwnerLoginResult, WorkspaceOption };
@@ -939,6 +954,154 @@ export function paymentMethodsReport(
     totalTransactions: raw.transactionCount ?? 0,
     totalAmount: raw.totalAmount ?? 0,
   }));
+}
+
+/** Omzet − COGS − waste. `extraCost` mirrors `wasteCost`. */
+export function profitLoss(
+  dateFrom: string,
+  dateTo: string,
+): Promise<ProfitLossReport> {
+  return apiFetch<ProfitLossReport>(
+    `/v1/reports/profit-loss?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+/** Cash in/out for one day (defaults to today server-side). */
+export function cashFlow(date?: string): Promise<CashFlowReport> {
+  const query = date ? `?date=${date}` : '';
+  return apiFetch<CashFlowReport>(`/v1/reports/cash-flow${query}`);
+}
+
+export function outletComparison(
+  dateFrom: string,
+  dateTo: string,
+): Promise<OutletComparison> {
+  return apiFetch<OutletComparison>(
+    `/v1/reports/outlet-comparison?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+/** `month` is `YYYY-MM`. */
+export function breakEven(month: string): Promise<BreakEvenReport> {
+  return apiFetch<BreakEvenReport>(`/v1/reports/break-even?month=${month}`);
+}
+
+/** `month` is `YYYY-MM`. */
+export function taxSummary(month: string): Promise<TaxSummaryReport> {
+  return apiFetch<TaxSummaryReport>(`/v1/reports/tax-summary?month=${month}`);
+}
+
+export function wasteReport(
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<WasteReport> {
+  const params = new URLSearchParams();
+  if (dateFrom) params.set('dateFrom', dateFrom);
+  if (dateTo) params.set('dateTo', dateTo);
+  const query = params.toString();
+  return apiFetch<WasteReport>(
+    `/v1/reports/waste${query ? `?${query}` : ''}`,
+  );
+}
+
+/** `month` is `YYYY-MM`. Returns a bare array. */
+export function payroll(month: string): Promise<PayrollRow[]> {
+  return apiFetch<PayrollRow[]>(`/v1/reports/payroll?month=${month}`);
+}
+
+export function menuEngineering(
+  dateFrom: string,
+  dateTo: string,
+): Promise<MenuEngineeringReport> {
+  return apiFetch<MenuEngineeringReport>(
+    `/v1/reports/menu-engineering?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+export function byTable(
+  dateFrom: string,
+  dateTo: string,
+): Promise<ByTableReport> {
+  return apiFetch<ByTableReport>(
+    `/v1/reports/by-table?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+export function byOrderType(
+  dateFrom: string,
+  dateTo: string,
+): Promise<ByOrderTypeReport> {
+  return apiFetch<ByOrderTypeReport>(
+    `/v1/reports/by-order-type?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+export function discountsVoids(
+  dateFrom: string,
+  dateTo: string,
+): Promise<DiscountsVoidsReport> {
+  return apiFetch<DiscountsVoidsReport>(
+    `/v1/reports/discounts-voids?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+export function productTrend(
+  productId: string,
+  days = 30,
+): Promise<ProductTrendReport> {
+  return apiFetch<ProductTrendReport>(
+    `/v1/reports/product-trend?productId=${productId}&days=${days}`,
+  );
+}
+
+/** Per-category sales. Returns a bare array. */
+export function categorySales(
+  dateFrom: string,
+  dateTo: string,
+): Promise<CategorySalesRow[]> {
+  return apiFetch<CategorySalesRow[]>(
+    `/v1/reports/by-category?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+/** Per-cashier sales. Returns a bare array. */
+export function cashierSales(
+  dateFrom: string,
+  dateTo: string,
+): Promise<CashierSalesRow[]> {
+  return apiFetch<CashierSalesRow[]>(
+    `/v1/reports/by-cashier?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+export function employeeSales(
+  dateFrom: string,
+  dateTo: string,
+): Promise<EmployeeSalesReport> {
+  return apiFetch<EmployeeSalesReport>(
+    `/v1/reports/employee-sales?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+/** CSV export of the sales summary (`@SkipEnvelope` route). */
+export function downloadSalesSummary(
+  dateFrom: string,
+  dateTo: string,
+): Promise<Blob> {
+  return apiDownloadBlob(
+    `/v1/reports/sales-summary/export?dateFrom=${dateFrom}&dateTo=${dateTo}`,
+  );
+}
+
+/** CSV export of top products (`@SkipEnvelope` route). */
+export function downloadTopProducts(
+  dateFrom: string,
+  dateTo: string,
+  top = 10,
+): Promise<Blob> {
+  return apiDownloadBlob(
+    `/v1/reports/top-products/export?dateFrom=${dateFrom}&dateTo=${dateTo}&top=${top}`,
+  );
 }
 
 // --- Search ---------------------------------------------------------------

@@ -561,3 +561,199 @@ export type MaterialSummary = {
   criticalCount: number;
   lowCount: number;
 };
+
+// --- Reports (extended) ---------------------------------------------------
+
+export type ProfitLossReport = {
+  outletId: string;
+  dateFrom: string;
+  dateTo: string;
+  wasteCost: number;
+  revenue: number;
+  cogs: number;
+  extraCost: number;
+  totalCost: number;
+  grossProfit: number;
+  grossMarginPct: number;
+  uncostedItems: number;
+  costedItems: number;
+  costCoveragePct: number;
+  itemCount: number;
+};
+
+export type CashFlowReport = {
+  date: string;
+  outletId: string;
+  cashIn: { sales: number; total: number };
+  cashOut: { expenses: number; purchases: number; total: number };
+  openingBalance: number;
+  closingBalance: number;
+};
+
+export type OutletComparisonRow = {
+  outletId: string;
+  outletName: string;
+  orderCount: number;
+  revenue: number;
+  averageOrderValue: number;
+};
+
+export type OutletComparison = { items: OutletComparisonRow[] };
+
+export type BreakEvenReport = {
+  outletId: string;
+  month: string;
+  revenue: number;
+  fixedCost: number;
+  variableCost: number;
+  contributionMarginRatio: number;
+  breakEvenRevenue: number;
+  achievementPct: number;
+  profit: number;
+};
+
+export type TaxSummaryReport = {
+  outletId: string;
+  month: string;
+  paidOrderCount: number;
+  grossRevenue: number;
+  vatCollected: number;
+  pphFinalRate: number;
+  pphFinal: number;
+  taxInvoices: Array<{
+    id: string;
+    invoiceNumber: string;
+    taxAmount: number;
+    status: string;
+  }>;
+};
+
+export type WasteReport = {
+  outletId: string;
+  dateFrom: string | null;
+  dateTo: string | null;
+  recordCount: number;
+  totalCost: number;
+  byMaterial: Array<{
+    rawMaterialId: string;
+    rawMaterialName: string;
+    unit: string;
+    qty: number;
+    cost: number;
+  }>;
+  byReason: Array<{ reason: string; qty: number; cost: number }>;
+};
+
+export type PayrollRow = {
+  employeeId: string;
+  employeeName: string;
+  hours: number;
+  baseSalary: number;
+  timePay: number;
+  salesTotal: number;
+  commission: number;
+  grossPay: number;
+};
+
+export type MenuEngineeringClass = 'star' | 'plow_horse' | 'puzzle' | 'dog';
+
+export type MenuEngineeringItem = {
+  productId: string;
+  productName: string;
+  soldQty: number;
+  revenue: number;
+  cogs: number;
+  margin: number;
+  classification: MenuEngineeringClass;
+};
+
+export type MenuEngineeringReport = {
+  items: MenuEngineeringItem[];
+  /** Absent on the BE's empty-result branch. */
+  thresholds?: { avgRevenue: number; avgMargin: number };
+};
+
+export type ByTableReport = {
+  outletId: string;
+  dateFrom: string;
+  dateTo: string;
+  items: Array<{
+    tableId: string;
+    tableName: string;
+    orderCount: number;
+    revenue: number;
+    averageSpend: number;
+  }>;
+};
+
+export type ByOrderTypeReport = {
+  outletId: string;
+  dateFrom: string;
+  dateTo: string;
+  totalOrders: number;
+  items: Array<{
+    orderType: string | null;
+    orderCount: number;
+    revenue: number;
+    sharePct: number;
+  }>;
+};
+
+export type DiscountsVoidsReport = {
+  outletId: string;
+  dateFrom: string;
+  dateTo: string;
+  totalDiscount: number;
+  discountedOrders: number;
+  bySource: Array<{ source: string; amount: number }>;
+  voidedOrderCount: number;
+  voidedOrderValue: number;
+  voidedItemCount: number;
+  voidedItemValue: number;
+  voidedItems: Array<{
+    orderItemId: string;
+    productName: string | null;
+    qty: number;
+    total: number;
+  }>;
+};
+
+export type ProductTrendReport = {
+  outletId: string;
+  productId: string;
+  days: number;
+  points: Array<{ date: string; qty: number; revenue: number }>;
+};
+
+export type CategorySalesRow = {
+  category: string;
+  soldQty: number;
+  revenue: number;
+};
+
+export type CashierSalesRow = {
+  cashier: string;
+  orderCount: number;
+  revenue: number;
+};
+
+export type EmployeeSalesReport = {
+  outletId: string;
+  dateFrom: string;
+  dateTo: string;
+  employees: Array<{
+    cashierId: string | null;
+    cashierName: string;
+    orderCount: number;
+    paidOrders: number;
+    grossSales: number;
+    discountAmount: number;
+    netSales: number;
+    shifts: Array<{
+      shiftId: string | null;
+      shiftName: string | null;
+      orderCount: number;
+      grossSales: number;
+    }>;
+  }>;
+};
