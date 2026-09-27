@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
 import type { Category, Product } from '@/lib/types';
+import { resolveProductVisual } from '../dashboard/dashboard-assets';
 import { ModifierEditor } from './modifier-editor';
 import { PhotoEditor } from './photo-editor';
 import { VariantEditor } from './variant-editor';
@@ -142,9 +143,11 @@ export function ProductFormPanel({
       </div>
 
       {editing ? (
-        <div className="rounded-xl bg-lp-surface-low p-2.5">
-          <PhotoEditor productId={product.id} photoUrl={product.photoUrl} />
-        </div>
+        <PhotoEditor
+          productId={product.id}
+          photoUrl={product.photoUrl}
+          fallbackImage={resolveProductVisual(product.name).image}
+        />
       ) : (
         <NeedsSaved label="foto menu POS" />
       )}

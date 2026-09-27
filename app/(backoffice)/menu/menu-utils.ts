@@ -34,3 +34,15 @@ export function pageWindow(page: number, totalPages: number): Array<number | nul
   }
   return window;
 }
+
+/** Returns appropriate emoji/icon prefix for category chips matching Stitch design. */
+export function getCategoryIcon(name?: string | null): string {
+  if (!name) return '🍴';
+  const lower = name.toLowerCase();
+  if (lower.includes('kopi') || lower.includes('coffee') || lower.includes('espresso')) return '☕';
+  if (lower.includes('tea') || lower.includes('teh') || lower.includes('non-coffee')) return '🍵';
+  if (lower.includes('bakery') || lower.includes('pastry') || lower.includes('roti') || lower.includes('croissant')) return '🥐';
+  if (lower.includes('makan') || lower.includes('rice') || lower.includes('nasi') || lower.includes('meal')) return '🍛';
+  if (lower.includes('camilan') || lower.includes('snack') || lower.includes('fries') || lower.includes('kentang')) return '🍟';
+  return '🍴';
+}

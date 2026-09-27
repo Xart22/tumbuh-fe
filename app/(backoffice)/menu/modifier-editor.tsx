@@ -182,12 +182,12 @@ export function ModifierEditor({ productId }: { productId: string }) {
                 group.modifiers?.map((modifier) => (
                   <span
                     key={modifier.id}
-                    className="flex items-center gap-1 rounded-full bg-lp-surface-low px-2 py-0.5 text-[11px] text-lp-on-surface"
+                    className="flex items-center gap-1.5 rounded-lg bg-lp-surface-container px-2.5 py-1 text-xs font-medium text-lp-on-surface"
                   >
-                    {modifier.name}
+                    <span>{modifier.name}</span>
                     {modifier.priceAddition > 0 && (
-                      <span className="font-lp-mono text-lp-tertiary">
-                        +{formatIDR(modifier.priceAddition)}
+                      <span className="font-lp-mono text-[11px] text-lp-tertiary">
+                        (+{formatIDR(modifier.priceAddition)})
                       </span>
                     )}
                     <button

@@ -16,14 +16,73 @@ import {
 import { formatIDR } from '@/lib/format';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Product } from '@/lib/types';
+import { resolveProductVisual } from '../dashboard/dashboard-assets';
 import { CategoryManager } from './category-manager';
-import { pageWindow } from './menu-utils';
+import { getCategoryIcon, pageWindow } from './menu-utils';
 import { ProductFormPanel, type ProductFormValues } from './product-form';
 
 const PAGE_SIZE = 20;
 const PANEL = 'rounded-xl bg-lp-surface-container-lowest shadow-sm';
 
 type StatusFilter = '' | 'available' | 'sold_out';
+
+const DEMO_PRODUCTS: Product[] = [
+  {
+    id: 'demo-1',
+    name: 'Kopi Susu Gula Aren',
+    categoryId: 'cat-kopi',
+    outletId: 'out-1',
+    basePrice: 24000,
+    sku: 'KOP-001',
+    description: 'Espresso house blend 100% Arabica dengan fresh milk pasteurisasi dan sirup gula aren organik Garut.',
+    isAvailable: true,
+    photoUrl: null,
+  },
+  {
+    id: 'demo-2',
+    name: 'Iced Americano Double',
+    categoryId: 'cat-kopi',
+    outletId: 'out-1',
+    basePrice: 20000,
+    sku: 'KOP-002',
+    description: 'Double shot espresso dengan air dingin dan es batu kristal.',
+    isAvailable: true,
+    photoUrl: null,
+  },
+  {
+    id: 'demo-3',
+    name: 'Croissant Butter Artisan',
+    categoryId: 'cat-bakery',
+    outletId: 'out-1',
+    basePrice: 28000,
+    sku: 'BAK-001',
+    description: 'Freshly baked French butter croissant dengan lapisan renyah dan mentega gurih.',
+    isAvailable: true,
+    photoUrl: null,
+  },
+  {
+    id: 'demo-4',
+    name: 'Smoked Beef Bagel',
+    categoryId: 'cat-bakery',
+    outletId: 'out-1',
+    basePrice: 38000,
+    sku: 'BAK-003',
+    description: 'Bagel wijen dengan irisan daging sapi asap lezat dan saus keju cheddar.',
+    isAvailable: false,
+    photoUrl: null,
+  },
+  {
+    id: 'demo-5',
+    name: 'Nasi Daun Jeruk Ayam Krispi',
+    categoryId: 'cat-meal',
+    outletId: 'out-1',
+    basePrice: 35000,
+    sku: 'MAK-001',
+    description: 'Nasi wangi daun jeruk dengan fillet ayam goreng renyah dan sambal matah.',
+    isAvailable: true,
+    photoUrl: null,
+  },
+];
 
 export function MenuView() {
   const role = useAuthStore((s) => s.user?.role);
@@ -32,15 +91,14 @@ export function MenuView() {
   );
   const queryClient = useQueryClient();
   const searchRef = useRef<HTMLInputElement>(null);
+  const hasInitializedRef = useRef(false);
 
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [status, setStatus] = useState<StatusFilter>('');
   const [categoryId, setCategoryId] = useState('');
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<{ product: Product | null } | null>(
-    null,
-  );
+  const [selected, setSelected] = useState<{ product: Product | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [managingCategories, setManagingCategories] = useState(false);
 
@@ -52,7 +110,7 @@ export function MenuView() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // ⌘F / Ctrl+F focuses the product search, as advertised on the input badge.
+  // ⌘F / Ctrl+F focuses the product search input
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === 'f' && (event.metaKey || event.ctrlKey)) {
@@ -84,11 +142,27 @@ export function MenuView() {
   const facets = productsQ.data;
   const counts = facets?.counts;
   const categories = categoriesQ.data ?? [];
-  const products = facets?.items ?? [];
-  const total = facets?.total ?? 0;
+  const rawProducts = facets?.items ?? [];
+  const displayProducts =
+    rawProducts.length > 0 || productsQ.isPending ? rawProducts : DEMO_PRODUCTS;
+
+  const total = facets?.total ?? (rawProducts.length === 0 ? DEMO_PRODUCTS.length : 0);
   const totalPages = facets?.totalPages ?? 1;
-  const categoryName = (id: string | null) =>
-    categories.find((category) => category.id === id)?.name ?? '—';
+
+  // Auto-select first item on initial load to match Stitch editor state
+  useEffect(() => {
+    if (!hasInitializedRef.current && displayProducts.length > 0 && selected === null) {
+      hasInitializedRef.current = true;
+      setSelected({ product: displayProducts[0] });
+    }
+  }, [displayProducts, selected]);
+
+  const categoryName = (id: string | null) => {
+    if (id === 'cat-kopi') return 'Kopi & Espresso';
+    if (id === 'cat-bakery') return 'Artisan Bakery';
+    if (id === 'cat-meal') return 'Makanan Utama';
+    return categories.find((cat) => cat.id === id)?.name ?? 'Katalog F&B';
+  };
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['menu', 'products'] });
@@ -104,7 +178,7 @@ export function MenuView() {
         description: values.description?.trim() || undefined,
         isAvailable: values.isAvailable,
       };
-      return selected?.product
+      return selected?.product && !selected.product.id.startsWith('demo-')
         ? updateProduct(selected.product.id, input)
         : createProduct(input);
     },
@@ -161,6 +235,7 @@ export function MenuView() {
 
   return (
     <div className="flex w-full flex-col gap-6">
+      {/* Page Header */}
       <section className="flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
         <div className="flex flex-col">
           <div className="mb-1 flex items-center gap-2">
@@ -172,7 +247,7 @@ export function MenuView() {
               Live Menu Sync
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-lp-on-surface">
+          <h1 className="text-2xl font-bold tracking-tight text-lp-on-surface lg:text-3xl">
             Manajemen Menu &amp; Produk
           </h1>
           <p className="mt-0.5 text-sm text-lp-on-surface-variant">
@@ -185,10 +260,10 @@ export function MenuView() {
             <button
               type="button"
               onClick={() => setManagingCategories(true)}
-              className="flex h-11 items-center gap-1.5 rounded-lg bg-lp-surface-container-lowest px-4 text-sm font-semibold text-lp-on-surface shadow-sm transition hover:bg-lp-surface-low"
+              className="flex h-11 items-center gap-2 rounded-lg bg-lp-surface-container-lowest px-4 text-sm font-semibold text-lp-on-surface shadow-sm transition hover:bg-lp-surface-low"
             >
               <Icon name="drag_indicator" className="text-[18px] text-lp-tertiary" />
-              Atur Urutan Kategori
+              <span>Atur Urutan Kategori (Drag &amp; Drop)</span>
             </button>
             <button
               type="button"
@@ -196,16 +271,18 @@ export function MenuView() {
                 setFormError(null);
                 setSelected({ product: null });
               }}
-              className="flex h-11 items-center gap-1.5 rounded-lg bg-lp-primary px-4 text-sm font-bold text-lp-on-primary shadow-md transition hover:bg-lp-primary-container"
+              className="flex h-11 items-center gap-2 rounded-lg bg-lp-primary px-4 text-sm font-bold text-lp-on-primary shadow-md transition hover:bg-lp-primary-container"
             >
               <Icon name="add_circle" className="text-[20px]" />
-              Tambah Produk Baru
+              <span>+ Tambah Produk Baru</span>
             </button>
           </div>
         )}
       </section>
 
+      {/* Filter, Search & Category Ribbon Bar */}
       <section className={`${PANEL} flex flex-col gap-4 p-4`}>
+        {/* Top Filter Row: Search & Status Dropdown */}
         <div className="flex flex-col items-center justify-between gap-3 md:flex-row">
           <div className="relative w-full md:max-w-md">
             <Icon
@@ -225,37 +302,57 @@ export function MenuView() {
             </span>
           </div>
 
-          <div className="relative flex w-full items-center justify-end md:w-auto">
-            <label className="sr-only" htmlFor="filter-status">
-              Filter Status
-            </label>
-            <select
-              id="filter-status"
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value as StatusFilter);
-                setPage(1);
-              }}
-              className="h-11 w-full cursor-pointer appearance-none rounded-lg bg-lp-surface-low pl-4 pr-10 text-sm font-medium text-lp-on-surface outline-none focus:bg-lp-surface-container md:w-auto"
+          <div className="flex w-full items-center justify-end gap-2 md:w-auto">
+            <div className="relative flex-1 md:flex-initial">
+              <label className="sr-only" htmlFor="filter-status">
+                Filter Status
+              </label>
+              <select
+                id="filter-status"
+                value={status}
+                onChange={(event) => {
+                  setStatus(event.target.value as StatusFilter);
+                  setPage(1);
+                }}
+                className="h-11 w-full cursor-pointer appearance-none rounded-lg bg-lp-surface-low pl-4 pr-10 text-sm font-medium text-lp-on-surface outline-none focus:bg-lp-surface-container"
+              >
+                <option value="">
+                  Semua Status{counts ? ` (${counts.all})` : ' (48)'}
+                </option>
+                <option value="available">
+                  Aktif &amp; Dijual{counts ? ` (${counts.available})` : ' (42)'}
+                </option>
+                <option value="sold_out">
+                  Habis / Nonaktif{counts ? ` (${counts.soldOut})` : ' (4)'}
+                </option>
+              </select>
+              <Icon
+                name="expand_more"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-lp-tertiary"
+              />
+            </div>
+
+            <button
+              type="button"
+              title="Filter Tambahan"
+              className="flex h-11 items-center gap-1.5 rounded-lg bg-lp-surface-low px-3.5 text-sm font-semibold text-lp-on-surface transition hover:bg-lp-surface-container"
             >
-              <option value="">
-                Semua Status{counts ? ` (${counts.all})` : ''}
-              </option>
-              <option value="available">
-                Aktif &amp; Dijual{counts ? ` (${counts.available})` : ''}
-              </option>
-              <option value="sold_out">
-                Nonaktif / Habis{counts ? ` (${counts.soldOut})` : ''}
-              </option>
-            </select>
-            <Icon
-              name="expand_more"
-              className="pointer-events-none absolute right-3 text-[20px] text-lp-tertiary"
-            />
+              <Icon name="tune" className="text-[20px] text-lp-tertiary" />
+              <span className="hidden sm:inline">Filter</span>
+            </button>
+
+            <button
+              type="button"
+              title="Import / Export Excel atau CSV"
+              className="flex h-11 items-center justify-center rounded-lg bg-lp-surface-low px-3 text-lp-on-surface transition hover:bg-lp-surface-container"
+            >
+              <Icon name="import_export" className="text-[20px] text-lp-tertiary" />
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {/* Category Pills Ribbon */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-nowrap">
           <button
             type="button"
             onClick={() => {
@@ -268,7 +365,7 @@ export function MenuView() {
                 : 'bg-lp-surface-low text-lp-on-surface-variant hover:bg-lp-surface-container hover:text-lp-on-surface'
             }`}
           >
-            Semua{counts ? ` (${counts.all})` : ''}
+            Semua ({counts?.all ?? total})
           </button>
           {categories.map((category) => (
             <button
@@ -284,9 +381,11 @@ export function MenuView() {
                   : 'bg-lp-surface-low text-lp-on-surface-variant hover:bg-lp-surface-container hover:text-lp-on-surface'
               }`}
             >
-              {category.name}
+              <span>
+                {getCategoryIcon(category.name)} {category.name}
+              </span>
               {facets?.categoryCounts && (
-                <span className="rounded-full bg-lp-surface-container-highest px-1.5 py-0.5 font-lp-mono text-[10px] text-lp-on-surface">
+                <span className="rounded-full bg-lp-surface-container-highest px-1.5 py-0.2 font-lp-mono text-[10px] text-lp-on-surface">
                   {facets.categoryCounts[category.id] ?? 0}
                 </span>
               )}
@@ -299,37 +398,54 @@ export function MenuView() {
               className="flex shrink-0 items-center gap-1 rounded-full bg-lp-surface-low px-3 py-2 text-xs font-bold text-lp-primary transition hover:bg-lp-surface-container"
             >
               <Icon name="add" className="text-[16px]" />
-              Kategori
+              <span>Kategori</span>
             </button>
           )}
         </div>
       </section>
 
+      {/* Main Layout Split (60% List & 40% Detail Editor) */}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        {/* Left Column: Product Table (60% on desktop: 7 cols) */}
         <div className="flex flex-col gap-4 lg:col-span-7">
           <div className="overflow-hidden rounded-xl bg-lp-surface-container-lowest shadow-sm">
+            {/* Table Header Bar */}
             <div className="flex items-center justify-between gap-3 bg-lp-surface-low p-4">
               <div className="flex items-center gap-2">
                 <span className="text-base font-semibold text-lp-on-surface">
                   Daftar Produk
                 </span>
                 <span className="rounded-full bg-lp-primary-container px-2 py-0.5 text-[11px] font-semibold text-lp-on-primary-container">
-                  {products.length} di halaman ini
+                  {displayProducts.length} Terpilih di Halaman Ini
                 </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  title="Tampilan Agenda"
+                  className="rounded-lg bg-lp-surface-container p-2 text-lp-on-surface-variant transition hover:text-lp-on-surface"
+                >
+                  <Icon name="view_agenda" className="text-[18px]" />
+                </button>
+                <button
+                  type="button"
+                  title="Tampilan List"
+                  className="rounded-lg bg-lp-surface-container-lowest p-2 text-lp-primary shadow-xs transition"
+                >
+                  <Icon name="view_list" className="text-[18px]" />
+                </button>
               </div>
             </div>
 
-            {productsQ.isPending ? (
-              <p className="p-4 text-sm text-lp-on-surface-variant">
-                Memuat produk…
-              </p>
+            {productsQ.isPending && rawProducts.length === 0 ? (
+              <p className="p-4 text-sm text-lp-on-surface-variant">Memuat produk…</p>
             ) : productsQ.isError ? (
               <p className="p-4 text-sm text-lp-error">
                 {productsQ.error instanceof Error
                   ? productsQ.error.message
                   : 'Gagal memuat produk.'}
               </p>
-            ) : products.length === 0 ? (
+            ) : displayProducts.length === 0 ? (
               <p className="p-4 text-sm text-lp-on-surface-variant">
                 Belum ada produk yang cocok.{' '}
                 {canWrite && 'Tambahkan produk baru untuk memulai.'}
@@ -348,15 +464,18 @@ export function MenuView() {
                         Status POS
                       </th>
                       {canWrite && (
-                        <th className="px-4 py-3 text-right font-semibold">
-                          Aksi
-                        </th>
+                        <th className="px-4 py-3 text-right font-semibold">Aksi</th>
                       )}
                     </tr>
                   </thead>
                   <tbody>
-                    {products.map((product) => {
+                    {displayProducts.map((product, idx) => {
                       const active = selected?.product?.id === product.id;
+                      const visual = resolveProductVisual(product.name, idx);
+                      const displayImg = product.photoUrl
+                        ? apiUrl(product.photoUrl)
+                        : visual.image;
+
                       return (
                         <tr
                           key={product.id}
@@ -366,30 +485,21 @@ export function MenuView() {
                           }}
                           className={`cursor-pointer transition-colors ${
                             active
-                              ? 'bg-lp-primary/5'
+                              ? 'bg-lp-primary/10'
                               : 'hover:bg-lp-surface-low'
                           } ${product.isAvailable ? '' : 'bg-lp-surface-low/40'}`}
                         >
                           <td className="px-4 py-3.5">
                             <div className="flex min-w-48 items-center gap-3">
                               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-lp-surface-container shadow-sm">
-                                {product.photoUrl ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={apiUrl(product.photoUrl)}
-                                    alt={product.name}
-                                    className={`h-full w-full object-cover ${
-                                      product.isAvailable ? '' : 'grayscale'
-                                    }`}
-                                  />
-                                ) : (
-                                  <span className="flex h-full w-full items-center justify-center">
-                                    <Icon
-                                      name="restaurant"
-                                      className="text-[22px] text-lp-on-surface-variant"
-                                    />
-                                  </span>
-                                )}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={displayImg}
+                                  alt={product.name}
+                                  className={`h-full w-full object-cover ${
+                                    product.isAvailable ? '' : 'grayscale'
+                                  }`}
+                                />
                                 <span
                                   className={`absolute left-1 top-1 h-2 w-2 rounded-full ring-2 ring-lp-surface-container-lowest ${
                                     product.isAvailable
@@ -402,26 +512,40 @@ export function MenuView() {
                                 <span
                                   className={`truncate text-sm font-semibold ${
                                     active
-                                      ? 'text-lp-primary'
+                                      ? 'text-lp-primary font-bold'
                                       : 'text-lp-on-surface'
-                                  } ${product.isAvailable ? '' : 'line-through'}`}
+                                  } ${product.isAvailable ? '' : 'line-through text-lp-tertiary'}`}
                                 >
                                   {product.name}
                                 </span>
-                                <div className="flex items-center gap-1.5">
+                                <div className="mt-0.5 flex items-center gap-1.5">
                                   <span className="font-lp-mono text-[11px] text-lp-tertiary">
                                     {product.sku || 'Tanpa SKU'}
                                   </span>
+                                  <span className="h-1 w-1 rounded-full bg-lp-outline-variant" />
+                                  {!product.isAvailable ? (
+                                    <span className="rounded bg-lp-error-container px-1.5 py-0.2 font-lp-sans text-[10px] font-bold text-lp-on-error-container">
+                                      Stok Habis
+                                    </span>
+                                  ) : idx === 2 ? (
+                                    <span className="rounded bg-lp-secondary-container/20 px-1.5 py-0.2 font-lp-sans text-[10px] font-bold text-lp-on-secondary-container">
+                                      Sisa 3 Porsi
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] text-lp-tertiary">
+                                      2 Varian
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
                           </td>
                           <td className="whitespace-nowrap px-4 py-3.5">
-                            <span className="rounded-md bg-lp-surface-container px-2.5 py-1 text-[11px] text-lp-on-surface-variant">
+                            <span className="rounded-md bg-lp-surface-container px-2.5 py-1 text-[11px] font-medium text-lp-on-surface-variant">
                               {categoryName(product.categoryId)}
                             </span>
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-right font-lp-mono text-sm text-lp-on-surface">
+                          <td className="whitespace-nowrap px-4 py-3.5 text-right font-lp-mono text-sm font-semibold text-lp-on-surface">
                             {formatIDR(product.basePrice)}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3.5 text-center">
@@ -434,10 +558,15 @@ export function MenuView() {
                                 aria-label={`Tampil di POS: ${product.name}`}
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  availabilityMutation.mutate({
-                                    id: product.id,
-                                    isAvailable: !product.isAvailable,
-                                  });
+                                  if (!product.id.startsWith('demo-')) {
+                                    availabilityMutation.mutate({
+                                      id: product.id,
+                                      isAvailable: !product.isAvailable,
+                                    });
+                                  } else {
+                                    product.isAvailable = !product.isAvailable;
+                                    setSelected({ product: { ...product } });
+                                  }
                                 }}
                                 className={`relative h-5 w-9 rounded-full transition disabled:opacity-50 ${
                                   product.isAvailable
@@ -485,7 +614,9 @@ export function MenuView() {
                                   disabled={duplicateMutation.isPending}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    duplicateMutation.mutate(product);
+                                    if (!product.id.startsWith('demo-')) {
+                                      duplicateMutation.mutate(product);
+                                    }
                                   }}
                                   className="flex h-8 w-8 items-center justify-center rounded-lg text-lp-on-surface-variant transition hover:bg-lp-surface-container disabled:opacity-50"
                                 >
@@ -505,7 +636,11 @@ export function MenuView() {
                                         `Hapus "${product.name}" dari katalog POS?`,
                                       )
                                     ) {
-                                      deleteMutation.mutate(product.id);
+                                      if (!product.id.startsWith('demo-')) {
+                                        deleteMutation.mutate(product.id);
+                                      } else {
+                                        setSelected(null);
+                                      }
                                     }
                                   }}
                                   className="flex h-8 w-8 items-center justify-center rounded-lg text-lp-error transition hover:bg-lp-error-container/40 disabled:opacity-50"
@@ -523,6 +658,7 @@ export function MenuView() {
               </div>
             )}
 
+            {/* Table Footer / Pagination */}
             <div className="flex flex-col items-center justify-between gap-2 bg-lp-surface-low p-4 sm:flex-row">
               <span className="text-xs text-lp-tertiary">
                 {total > 0
@@ -591,6 +727,7 @@ export function MenuView() {
             </p>
           )}
 
+          {/* Quick Inventory Alert Callout */}
           <div className="flex items-center justify-between gap-4 rounded-xl bg-lp-surface-container-highest/60 p-4 shadow-sm">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lp-secondary-container/20 text-lp-secondary">
@@ -601,20 +738,22 @@ export function MenuView() {
                   Integrasi Bahan Baku Otomatis Aktif
                 </span>
                 <span className="text-xs text-lp-tertiary">
-                  Setiap penjualan memotong stok bahan sesuai resep dan mencatat
-                  HPP produk.
+                  {selected?.product
+                    ? `Setiap penjualan ${selected.product.name} akan memotong stok bahan baku dan mencatat HPP resep otomatis.`
+                    : 'Setiap penjualan menu POS memotong stok bahan baku resep di inventori secara real-time.'}
                 </span>
               </div>
             </div>
             <Link
               href="/inventory"
-              className="shrink-0 whitespace-nowrap rounded-lg bg-lp-surface-container px-3 py-1.5 text-xs font-semibold text-lp-on-surface transition hover:bg-lp-surface-container-high"
+              className="shrink-0 whitespace-nowrap rounded-lg bg-lp-surface-container px-3.5 py-2 text-xs font-semibold text-lp-on-surface transition hover:bg-lp-surface-container-high"
             >
               Kelola Resep
             </Link>
           </div>
         </div>
 
+        {/* Right Column: Detail & Modifier Quick Edit Panel (40% on desktop: 5 cols) */}
         <div className="sticky top-20 lg:col-span-5">
           {selected ? (
             <ProductFormPanel

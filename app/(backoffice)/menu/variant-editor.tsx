@@ -159,10 +159,18 @@ export function VariantEditor({ productId }: { productId: string }) {
                 </>
               ) : (
                 <>
-                  <span className="flex-1 text-sm font-medium text-lp-on-surface">
-                    {variant.name}
-                  </span>
-                  <span className="font-lp-mono text-xs text-lp-on-surface">
+                  <div className="flex flex-1 min-w-0 items-center gap-2">
+                    <Icon name="drag_handle" className="text-[18px] text-lp-tertiary shrink-0" />
+                    <span className="text-sm font-semibold text-lp-on-surface truncate">
+                      {variant.name}
+                    </span>
+                    {variant.priceAdjustment === 0 && (
+                      <span className="rounded bg-lp-surface-container-highest px-1.5 py-0.5 text-[10px] text-lp-on-surface">
+                        Default
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-lp-mono text-xs font-bold text-lp-on-surface">
                     {variant.priceAdjustment === 0
                       ? '(harga dasar)'
                       : `+${formatIDR(variant.priceAdjustment)}`}
