@@ -179,21 +179,52 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
             <HeaderSearch />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="hidden xl:flex flex-col items-end">
+              <span className="text-xs font-semibold text-lp-on-surface">
+                {new Date().toLocaleDateString('id-ID', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </span>
+              <span className="font-lp-mono text-[11px] text-lp-on-surface-variant">
+                {new Date().toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}{' '}
+                WIB
+              </span>
+            </div>
+
             {activeCount !== null && activeCount > 0 && (
               <span className="hidden items-center gap-1.5 rounded-full bg-lp-surface-container-high px-2.5 py-1 text-[11px] font-semibold text-lp-on-surface md:inline-flex">
                 <span className="inline-block h-2 w-2 rounded-full bg-lp-secondary-container" />
                 {shiftPillText}
               </span>
             )}
-            <NotificationsBell />
+
+            <div className="flex items-center gap-1">
+              <NotificationsBell />
+              <button
+                type="button"
+                title="Bantuan & Dukungan"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-lp-on-surface-variant transition-colors hover:bg-lp-surface-container hover:text-lp-on-surface"
+              >
+                <Icon name="support_agent" className="text-[22px]" />
+              </button>
+            </div>
+
+            <div className="hidden h-7 w-px bg-lp-surface-container md:block" />
+
             <div className="hidden items-center gap-2 md:flex">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lp-primary text-lp-on-primary">
                 <Icon name="person" className="text-[18px]" filled />
               </span>
               <div className="flex flex-col">
                 <span className="flex items-center gap-1">
-                  <span className="text-xs font-semibold">{user?.name ?? '—'}</span>
+                  <span className="text-xs font-semibold">{user?.name ?? 'Dimas Pratama'}</span>
                   <span className="rounded bg-lp-primary-container px-1.5 py-0.5 text-[10px] font-semibold text-lp-on-primary-container">
                     {roleLabel(user?.role)}
                   </span>
@@ -203,15 +234,16 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
                 </span>
               </div>
             </div>
+
             <Button
               variant="ghost"
-              className="h-11 gap-1.5 px-3 text-xs font-semibold text-lp-on-surface-variant hover:bg-lp-surface-container hover:text-lp-on-surface"
+              className="h-10 gap-1.5 px-2.5 text-xs font-semibold text-lp-on-surface-variant hover:bg-lp-surface-container hover:text-lp-on-surface"
               onClick={() => {
                 logout();
                 router.replace('/login');
               }}
             >
-              <Icon name="logout" className="text-[20px]" />
+              <Icon name="logout" className="text-[18px]" />
               Keluar
             </Button>
           </div>
