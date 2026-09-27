@@ -6,7 +6,7 @@ import { Alert, Button, Card, Field, Input, Spinner } from '@/components/pos-ui'
 import {
   dailySummary,
   hourlySales,
-  paymentMethodsBreakdown,
+  paymentMethodsReport,
   salesSummary,
   topProducts,
 } from '@/lib/api';
@@ -45,7 +45,7 @@ export function ReportsDashboard() {
       },
       {
         queryKey: ['reports', 'methods', applied.dateFrom, applied.dateTo],
-        queryFn: () => paymentMethodsBreakdown(applied.dateFrom, applied.dateTo),
+        queryFn: () => paymentMethodsReport(applied.dateFrom, applied.dateTo),
       },
     ],
   });
@@ -54,7 +54,7 @@ export function ReportsDashboard() {
   const sales = salesQ.data ?? null;
   const tops = topsQ.data ?? [];
   const hourly = hourlyQ.data ?? [];
-  const methods = methodsQ.data ?? [];
+  const methods = methodsQ.data?.methods ?? [];
   const loading =
     dailyQ.isPending ||
     salesQ.isPending ||
