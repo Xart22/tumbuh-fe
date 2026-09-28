@@ -83,6 +83,10 @@ import type {
   AccountingProvider,
   JournalEntry,
   JournalSyncResult,
+  OutletDetail,
+  OutletSettings,
+  Printer,
+  AuditLog,
 } from './types';
 
 export type { OwnerLoginResult, WorkspaceOption };
@@ -933,6 +937,121 @@ export function setOutletDailyTarget(
     `/v1/outlets/${outletId}/targets`,
     { method: 'PATCH', body: { dailyRevenue } },
   );
+}
+
+export function getOutlet(outletId: string): Promise<OutletDetail> {
+  return apiFetch<OutletDetail>(`/v1/outlets/${outletId}`);
+}
+
+export function updateOutletProfile(
+  outletId: string,
+  input: {
+    name?: string;
+    address?: string | null;
+    city?: string | null;
+    postalCode?: string | null;
+    phone?: string | null;
+    picName?: string | null;
+    timezone?: string;
+  },
+): Promise<OutletDetail> {
+  return apiFetch<OutletDetail>(`/v1/outlets/${outletId}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export function updateOutletLocation(
+  outletId: string,
+  location: { lat: number | null; lng: number | null },
+): Promise<{ outletId: string; gps: { lat: number; lng: number } | null }> {
+  return apiFetch(`/v1/outlets/${outletId}/location`, {
+    method: 'PATCH',
+    body: location,
+  });
+}
+
+export function updateOutletSettings(
+  outletId: string,
+  patch: Partial<OutletSettings>,
+): Promise<{ outletId: string; settings: OutletSettings }> {
+  return apiFetch(`/v1/outlets/${outletId}/settings`, {
+    method: 'PATCH',
+    body: patch,
+  });
+}
+
+// --- Printer --------------------------------------------------------------
+
+export function listPrinters(): Promise<{
+  outletId: string;
+  printers: Printer[];
+}> {
+  return apiFetch('/v1/printers');
+}
+
+export type PrinterInput = {
+  name: string;
+  type: string;
+  connection: string;
+  address?: string;
+  paperWidth?: number;
+  station?: string;
+};
+
+export function createPrinter(input: PrinterInput): Promise<Printer> {
+  return apiFetch<Printer>('/v1/printers', { method: 'POST', body: input });
+}
+
+export function updatePrinter(
+  id: string,
+  input: {
+    name?: string;
+    address?: string;
+    isActive?: boolean;
+    paperWidth?: number;
+    station?: string;
+  },
+): Promise<Printer> {
+  return apiFetch<Printer>(`/v1/printers/${id}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export function deletePrinter(
+  id: string,
+): Promise<{ id: string; outletId: string; removed: true }> {
+  return apiFetch(`/v1/printers/${id}`, { method: 'DELETE' });
+}
+
+export function testPrinter(id: string): Promise<{
+  success: true;
+  message: string;
+  printer: Pick<Printer, 'id' | 'name' | 'connection' | 'address' | 'paperWidth'>;
+}> {
+  return apiFetch(`/v1/printers/${id}/test`, { method: 'POST' });
+}
+
+// --- Audit log ------------------------------------------------------------
+
+export function listAuditLogs(params?: {
+  entity?: string;
+  action?: string;
+  entityId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+}): Promise<AuditLog[]> {
+  const query = new URLSearchParams();
+  if (params?.entity) query.set('entity', params.entity);
+  if (params?.action) query.set('action', params.action);
+  if (params?.entityId) query.set('entityId', params.entityId);
+  if (params?.dateFrom) query.set('dateFrom', params.dateFrom);
+  if (params?.dateTo) query.set('dateTo', params.dateTo);
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return apiFetch<AuditLog[]>(`/v1/audit-logs${qs ? `?${qs}` : ''}`);
 }
 
 // --- Reports --------------------------------------------------------------

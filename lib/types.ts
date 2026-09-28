@@ -1073,3 +1073,97 @@ export type JournalSyncResult = {
   pending?: boolean;
   note?: string;
 };
+
+// --- Pengaturan Outlet ----------------------------------------------------
+
+export type TaxSettings = { enabled: boolean; rate: number; name: string };
+export type ServiceChargeSettings = { enabled: boolean; rate: number };
+export type KdsSettings = {
+  alertMinutes: number;
+  stationRules: Array<{ station: string; match: string }>;
+};
+export type AttendanceSettings = {
+  maxRadiusM: number;
+  requireGps: boolean;
+  requirePhoto: boolean;
+};
+export type ReceiptSettings = { whatsapp: boolean };
+export type DeliverySettings = {
+  enabled: boolean;
+  flatFee: number;
+  perKmFee: number;
+  freeRadiusKm: number;
+  maxRadiusKm: number;
+};
+export type LoyaltyTiersSettings = {
+  silverMinSpend: number;
+  goldMinSpend: number;
+  platinumMinSpend: number;
+};
+export type LoyaltySettings = {
+  pointsPerRp: number;
+  redeemRate: number;
+  pointsMultiplier: number;
+  referralBonusPoints: number;
+  stampThreshold: number;
+  stampMode: string;
+  stampProductIds: string[];
+  tiers: LoyaltyTiersSettings;
+  pointsExpireDays: number;
+};
+export type TargetsSettings = { dailyRevenue: number; foodCostPct: number };
+
+export type OutletSettings = {
+  tax: TaxSettings;
+  serviceCharge: ServiceChargeSettings;
+  roundingBase: number;
+  kds: KdsSettings;
+  attendance: AttendanceSettings;
+  loyalty: LoyaltySettings;
+  receipt: ReceiptSettings;
+  delivery: DeliverySettings;
+  targets: TargetsSettings;
+};
+
+export type OutletDetail = {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  phone: string | null;
+  picName: string | null;
+  operatingHours: Record<string, unknown>;
+  timezone: string;
+  gps: { lat: number; lng: number } | null;
+  settings: OutletSettings;
+  isActive: boolean;
+};
+
+export const PRINTER_TYPES = ['thermal', 'kitchen'] as const;
+export const PRINTER_CONNECTIONS = ['usb', 'lan', 'bluetooth'] as const;
+
+export type Printer = {
+  id: string;
+  outletId: string;
+  name: string;
+  type: string;
+  connection: string;
+  address: string | null;
+  paperWidth: number;
+  station: string | null;
+};
+
+export type AuditLog = {
+  id: string;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  changes: unknown;
+  actorUserId: string | null;
+  actorRole: string | null;
+  actorName: string | null;
+  actorEmail: string | null;
+  requestId: string | null;
+  createdAt: string;
+};
