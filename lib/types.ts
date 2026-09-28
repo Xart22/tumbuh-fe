@@ -87,6 +87,31 @@ export type Product = {
   description?: string | null;
   /** Relative path under the BE `/uploads` mount (e.g. `/uploads/products/…`). */
   photoUrl?: string | null;
+  /** Availability window `HH:MM` (UTC); null when the product is all-day. */
+  availabilityStart?: string | null;
+  availabilityEnd?: string | null;
+};
+
+export type ProductBundleItem = {
+  productId: string;
+  productName: string | null;
+  qty: number;
+};
+
+export type ProductBundle = {
+  id: string;
+  name: string;
+  price: number;
+  isActive: boolean;
+  items: ProductBundleItem[];
+};
+
+export type ProductOutletOverride = {
+  outletId: string;
+  outletName: string;
+  priceOverride: number | null;
+  isAvailable: boolean;
+  hasOverride: boolean;
 };
 
 export type ProductVariant = {

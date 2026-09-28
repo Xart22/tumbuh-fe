@@ -18,6 +18,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import type { Product } from '@/lib/types';
 import { resolveProductVisual } from '../dashboard/dashboard-assets';
 import { CategoryManager } from './category-manager';
+import { BundlesManager } from './bundles-manager';
 import { getCategoryIcon, pageWindow } from './menu-utils';
 import { ProductFormPanel, type ProductFormValues } from './product-form';
 
@@ -101,6 +102,7 @@ export function MenuView() {
   const [selected, setSelected] = useState<{ product: Product | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [managingCategories, setManagingCategories] = useState(false);
+  const [managingBundles, setManagingBundles] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -177,6 +179,8 @@ export function MenuView() {
         sku: values.sku?.trim() || undefined,
         description: values.description?.trim() || undefined,
         isAvailable: values.isAvailable,
+        availabilityStart: values.availabilityStart || null,
+        availabilityEnd: values.availabilityEnd || null,
       };
       return selected?.product && !selected.product.id.startsWith('demo-')
         ? updateProduct(selected.product.id, input)
@@ -264,6 +268,17 @@ export function MenuView() {
             >
               <Icon name="drag_indicator" className="text-[18px] text-lp-tertiary" />
               <span>Atur Urutan Kategori (Drag &amp; Drop)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setManagingBundles(true)}
+              className="flex h-11 items-center gap-2 rounded-lg bg-lp-surface-container-lowest px-4 text-sm font-semibold text-lp-on-surface shadow-sm transition hover:bg-lp-surface-low"
+            >
+              <Icon
+                name="inventory_2"
+                className="text-[18px] text-lp-tertiary"
+              />
+              <span>Bundling Paket</span>
             </button>
             <button
               type="button"
@@ -791,6 +806,10 @@ export function MenuView() {
           categories={categories}
           onClose={() => setManagingCategories(false)}
         />
+      )}
+
+      {managingBundles && (
+        <BundlesManager onClose={() => setManagingBundles(false)} />
       )}
     </div>
   );

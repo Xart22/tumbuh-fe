@@ -23,6 +23,8 @@ import type {
   Product,
   ProductFacets,
   ProductMargin,
+  ProductBundle,
+  ProductOutletOverride,
   ProductVariant,
   ProfitSummary,
   PurchaseOrder,
@@ -308,6 +310,9 @@ export type ProductInput = {
   sku?: string;
   description?: string;
   isAvailable?: boolean;
+  /** `HH:MM` or null to clear the window (all-day). */
+  availabilityStart?: string | null;
+  availabilityEnd?: string | null;
 };
 
 export function createProduct(input: ProductInput): Promise<Product> {
@@ -327,6 +332,51 @@ export function updateProduct(
 export function deleteProduct(productId: string): Promise<{ id: string }> {
   return apiFetch<{ id: string }>(`/v1/products/${productId}`, {
     method: 'DELETE',
+  });
+}
+
+export function listProductBundles(): Promise<ProductBundle[]> {
+  return apiFetch<ProductBundle[]>('/v1/product-bundles');
+}
+
+export function createProductBundle(input: {
+  name: string;
+  price: number;
+  items: Array<{ productId: string; qty: number }>;
+  isActive?: boolean;
+}): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>('/v1/product-bundles', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function deleteProductBundle(
+  id: string,
+): Promise<{ id: string; deleted: true }> {
+  return apiFetch(`/v1/product-bundles/${id}`, { method: 'DELETE' });
+}
+
+export function listOutletOverrides(
+  productId: string,
+): Promise<ProductOutletOverride[]> {
+  return apiFetch<ProductOutletOverride[]>(
+    `/v1/products/${productId}/outlet-overrides`,
+  );
+}
+
+export function setOutletOverride(
+  productId: string,
+  input: { outletId: string; priceOverride: number | null; isAvailable?: boolean },
+): Promise<{
+  productId: string;
+  outletId: string;
+  priceOverride: number | null;
+  isAvailable: boolean | null;
+}> {
+  return apiFetch(`/v1/products/${productId}/outlet-overrides`, {
+    method: 'POST',
+    body: input,
   });
 }
 

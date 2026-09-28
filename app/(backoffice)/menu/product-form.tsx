@@ -7,6 +7,7 @@ import { Icon } from '@/components/icon';
 import type { Category, Product } from '@/lib/types';
 import { resolveProductVisual } from '../dashboard/dashboard-assets';
 import { ModifierEditor } from './modifier-editor';
+import { OutletOverrideEditor } from './outlet-override-editor';
 import { PhotoEditor } from './photo-editor';
 import { VariantEditor } from './variant-editor';
 
@@ -19,6 +20,8 @@ export const productSchema = z.object({
   sku: z.string().trim().max(100, 'SKU maksimal 100 karakter.').optional(),
   description: z.string().trim().optional(),
   isAvailable: z.boolean(),
+  availabilityStart: z.string().optional(),
+  availabilityEnd: z.string().optional(),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
@@ -100,6 +103,8 @@ export function ProductFormPanel({
       sku: product?.sku ?? '',
       description: product?.description ?? '',
       isAvailable: product?.isAvailable ?? true,
+      availabilityStart: product?.availabilityStart ?? '',
+      availabilityEnd: product?.availabilityEnd ?? '',
     },
   });
 
@@ -234,6 +239,37 @@ export function ProductFormPanel({
       </div>
 
       <div className="flex flex-col gap-2 border-t border-lp-surface-container pt-3">
+        <SectionHeading icon="schedule" title="Waktu Ketersediaan (opsional)" />
+        <p className="text-xs text-lp-tertiary">
+          Kosongkan untuk selalu tersedia. Jam mengikuti waktu UTC outlet.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="p-avail-start" className={labelCls}>
+              Mulai
+            </label>
+            <input
+              id="p-avail-start"
+              {...register('availabilityStart')}
+              type="time"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label htmlFor="p-avail-end" className={labelCls}>
+              Selesai
+            </label>
+            <input
+              id="p-avail-end"
+              {...register('availabilityEnd')}
+              type="time"
+              className={inputCls}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-lp-surface-container pt-3">
         <SectionHeading icon="straighten" title="Varian Ukuran" />
         {editing ? (
           <VariantEditor productId={product.id} />
@@ -248,6 +284,18 @@ export function ProductFormPanel({
           <ModifierEditor productId={product.id} />
         ) : (
           <NeedsSaved label="modifier" />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2 border-t border-lp-surface-container pt-3">
+        <SectionHeading icon="storefront" title="Harga & Ketersediaan per Outlet" />
+        {editing ? (
+          <OutletOverrideEditor
+            productId={product.id}
+            basePrice={product.basePrice}
+          />
+        ) : (
+          <NeedsSaved label="override per outlet" />
         )}
       </div>
 
