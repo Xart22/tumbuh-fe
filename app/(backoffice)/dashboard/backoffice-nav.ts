@@ -6,6 +6,7 @@ export const NAV: Array<{ href: string; label: string; icon: string }> = [
   { href: '/employees', label: 'Karyawan & Shift', icon: 'badge' },
   { href: '/customers', label: 'Pelanggan & CRM', icon: 'loyalty' },
   { href: '/reports', label: 'Laporan & Analytics', icon: 'query_stats' },
+  { href: '/finance', label: 'Keuangan', icon: 'account_balance_wallet' },
   { href: '/pos', label: 'Kasir POS', icon: 'point_of_sale' },
 ];
 

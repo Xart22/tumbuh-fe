@@ -75,6 +75,12 @@ import type {
   StampCard,
   Voucher,
   VoucherValidation,
+  OrderSummary,
+  Expense,
+  SupplierInvoice,
+  AccountingProvider,
+  JournalEntry,
+  JournalSyncResult,
 } from './types';
 
 export type { OwnerLoginResult, WorkspaceOption };
@@ -507,10 +513,18 @@ export function createOrder(input: CreateOrderInput): Promise<CreatedOrder> {
   });
 }
 
-export function listOrders(): Promise<
-  Array<{ id: string; orderNumber: string; status: string; total: number }>
-> {
-  return apiFetch('/v1/orders');
+export function listOrders(paymentStatus?: string): Promise<OrderSummary[]> {
+  const qs = paymentStatus
+    ? `?paymentStatus=${encodeURIComponent(paymentStatus)}`
+    : '';
+  return apiFetch<OrderSummary[]>(`/v1/orders${qs}`);
+}
+
+/** Settle a `credit` (piutang) order — marks it paid and completes it. */
+export function settleCreditOrder(
+  orderId: string,
+): Promise<{ id: string; paymentStatus: string; status: string }> {
+  return apiFetch(`/v1/orders/${orderId}/credit-settle`, { method: 'POST' });
 }
 
 // --- Payments -------------------------------------------------------------
@@ -1450,6 +1464,113 @@ export function updateVoucher(
   input: { isActive?: boolean; maxUses?: number; expiresAt?: string },
 ): Promise<{ id: string }> {
   return apiFetch(`/v1/vouchers/${id}`, { method: 'PATCH', body: input });
+}
+
+// --- Keuangan -------------------------------------------------------------
+
+export function listExpenses(params?: {
+  category?: string;
+  costType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}): Promise<Paginated<Expense>> {
+  const query = new URLSearchParams();
+  if (params?.category) query.set('category', params.category);
+  if (params?.costType) query.set('costType', params.costType);
+  if (params?.dateFrom) query.set('dateFrom', params.dateFrom);
+  if (params?.dateTo) query.set('dateTo', params.dateTo);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return apiFetch<Paginated<Expense>>(`/v1/expenses${qs ? `?${qs}` : ''}`);
+}
+
+export type ExpenseInput = {
+  category: string;
+  costType: string;
+  amount: number;
+  description?: string;
+  expenseDate?: string;
+};
+
+export function createExpense(input: ExpenseInput): Promise<Expense> {
+  return apiFetch<Expense>('/v1/expenses', { method: 'POST', body: input });
+}
+
+export function updateExpense(
+  id: string,
+  input: { category?: string; amount?: number; description?: string },
+): Promise<{ id: string }> {
+  return apiFetch(`/v1/expenses/${id}`, { method: 'PATCH', body: input });
+}
+
+export function deleteExpense(id: string): Promise<{ id: string }> {
+  return apiFetch(`/v1/expenses/${id}`, { method: 'DELETE' });
+}
+
+export function listSupplierInvoices(params?: {
+  status?: string;
+  dueBefore?: string;
+}): Promise<SupplierInvoice[]> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set('status', params.status);
+  if (params?.dueBefore) query.set('dueBefore', params.dueBefore);
+  const qs = query.toString();
+  return apiFetch<SupplierInvoice[]>(
+    `/v1/suppliers/invoices${qs ? `?${qs}` : ''}`,
+  );
+}
+
+export function createSupplierInvoice(
+  supplierId: string,
+  input: {
+    invoiceNumber?: string;
+    totalAmount: number;
+    dueDate?: string;
+    poId?: string;
+  },
+): Promise<{
+  id: string;
+  invoiceNumber: string | null;
+  totalAmount: number;
+  paidAmount: number;
+  status: string;
+  dueDate: string | null;
+}> {
+  return apiFetch(`/v1/suppliers/${supplierId}/invoices`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function paySupplierInvoice(
+  invoiceId: string,
+  amount: number,
+): Promise<{ id: string; paidAmount: number; status: string }> {
+  return apiFetch(`/v1/suppliers/invoices/${invoiceId}/pay`, {
+    method: 'POST',
+    body: { amount },
+  });
+}
+
+export function accountingProvider(): Promise<AccountingProvider> {
+  return apiFetch<AccountingProvider>('/v1/accounting/provider');
+}
+
+export function previewJournals(date: string): Promise<JournalEntry[]> {
+  return apiFetch<JournalEntry[]>('/v1/accounting/journals/preview', {
+    method: 'POST',
+    body: { date },
+  });
+}
+
+export function syncJournals(date: string): Promise<JournalSyncResult> {
+  return apiFetch<JournalSyncResult>('/v1/accounting/journals/sync', {
+    method: 'POST',
+    body: { date },
+  });
 }
 
 // --- Search ---------------------------------------------------------------

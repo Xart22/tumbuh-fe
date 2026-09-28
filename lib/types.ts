@@ -977,3 +977,74 @@ export type VoucherValidation = {
   discountAmount: number;
   finalTotal: number;
 };
+
+// --- Keuangan -------------------------------------------------------------
+
+export type OrderSummary = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  paymentStatus?: string;
+  total: number;
+  createdAt?: string;
+};
+
+export const EXPENSE_COST_TYPES = ['variable', 'fixed'] as const;
+export type ExpenseCostType = (typeof EXPENSE_COST_TYPES)[number];
+
+export const EXPENSE_CATEGORY_SUGGESTIONS = [
+  'Bahan Baku',
+  'Operasional',
+  'Gaji',
+  'Sewa',
+  'Utilitas',
+  'Lainnya',
+] as const;
+
+export type Expense = {
+  id: string;
+  category: string;
+  costType: string;
+  amount: number;
+  description: string | null;
+  expenseDate: string;
+  createdAt: string;
+};
+
+export type SupplierInvoice = {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  invoiceNumber: string | null;
+  totalAmount: number;
+  paidAmount: number;
+  status: string;
+  dueDate: string | null;
+};
+
+export type AccountingProvider = {
+  provider: 'jurnal' | 'accurate' | 'none';
+};
+
+export type JournalLine = {
+  accountCode: string;
+  debit: number;
+  credit: number;
+};
+
+export type JournalEntry = {
+  date: string;
+  reference: string;
+  description: string;
+  lines: JournalLine[];
+};
+
+export type JournalSyncResult = {
+  date: string;
+  entries: number;
+  provider: string;
+  synced: number;
+  skipped: number;
+  pending?: boolean;
+  note?: string;
+};
