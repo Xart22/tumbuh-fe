@@ -3,11 +3,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
 import { LOGO_URL } from '@/components/landing/assets';
 import { Button } from '@/components/ui/button';
-import { activeShifts } from '@/lib/api';
+import { activeShifts, listOutlets } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { NAV, SOON } from './backoffice-nav';
 import { HeaderSearch } from './header-search';
@@ -39,13 +39,20 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const outletId = useAuthStore((s) => s.outletId);
   const outletName = useAuthStore((s) => s.outletName);
   const tenantSlug = useAuthStore((s) => s.tenantSlug);
+  const selectOutlet = useAuthStore((s) => s.selectOutlet);
   const logout = useAuthStore((s) => s.logout);
+  const queryClient = useQueryClient();
 
   const { data: shifts } = useQuery({
     queryKey: ['shifts', 'active'],
     queryFn: activeShifts,
+  });
+  const { data: outlets } = useQuery({
+    queryKey: ['outlets'],
+    queryFn: listOutlets,
   });
   const activeCount = shifts?.length ?? null;
   const singleShift = activeCount === 1 ? (shifts?.[0]?.terminalName ?? null) : null;
@@ -75,17 +82,35 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="px-4 py-2">
-            <div className="flex items-center justify-between rounded-lg bg-lp-surface-low p-2">
-              <div className="flex min-w-0 flex-col">
-                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-lp-primary">
-                  <span className="inline-block h-2 w-2 rounded-full bg-lp-primary-container" />
-                  Online
-                </span>
-                <span className="truncate text-sm font-semibold">
-                  {outletName ?? tenantSlug}
-                </span>
-              </div>
-              <Icon name="unfold_more" className="text-[20px] text-lp-on-surface-variant" />
+            <div className="flex flex-col gap-1 rounded-lg bg-lp-surface-low p-2">
+              <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-lp-primary">
+                <span className="inline-block h-2 w-2 rounded-full bg-lp-primary-container" />
+                Online
+              </span>
+              <select
+                value={outletId ?? ''}
+                onChange={(event) => {
+                  const next = (outlets ?? []).find(
+                    (item) => item.id === event.target.value,
+                  );
+                  if (!next) return;
+                  selectOutlet(next.id, next.name);
+                  // Cached queries are not outlet-keyed; drop them so every
+                  // panel refetches for the newly selected outlet.
+                  queryClient.clear();
+                }}
+                aria-label="Pilih outlet aktif"
+                className="w-full truncate bg-transparent text-sm font-semibold text-lp-on-surface outline-none"
+              >
+                {!outletId && (
+                  <option value="">{outletName ?? tenantSlug ?? 'Memuat…'}</option>
+                )}
+                {(outlets ?? []).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

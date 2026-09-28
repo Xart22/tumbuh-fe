@@ -87,6 +87,7 @@ import type {
   OutletSettings,
   Printer,
   AuditLog,
+  StockTransfer,
 } from './types';
 
 export type { OwnerLoginResult, WorkspaceOption };
@@ -1052,6 +1053,41 @@ export function listAuditLogs(params?: {
   if (params?.limit) query.set('limit', String(params.limit));
   const qs = query.toString();
   return apiFetch<AuditLog[]>(`/v1/audit-logs${qs ? `?${qs}` : ''}`);
+}
+
+// --- Multi-outlet ---------------------------------------------------------
+
+export function createOutlet(input: {
+  name: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  phone?: string;
+  picName?: string;
+  timezone?: string;
+}): Promise<{ id: string; name: string; timezone: string; isActive: boolean }> {
+  return apiFetch('/v1/outlets', { method: 'POST', body: input });
+}
+
+export function listStockTransfers(status?: string): Promise<StockTransfer[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return apiFetch<StockTransfer[]>(`/v1/stock-transfers${qs}`);
+}
+
+export function createStockTransfer(input: {
+  toOutletId: string;
+  notes?: string;
+  items: Array<{ rawMaterialId: string; qty: number }>;
+}): Promise<{ id: string; status: string }> {
+  return apiFetch('/v1/stock-transfers', { method: 'POST', body: input });
+}
+
+export function acceptStockTransfer(
+  transferId: string,
+): Promise<{ id: string; status: string }> {
+  return apiFetch(`/v1/stock-transfers/${transferId}/accept`, {
+    method: 'POST',
+  });
 }
 
 // --- Reports --------------------------------------------------------------

@@ -8,6 +8,7 @@ export const NAV: Array<{ href: string; label: string; icon: string }> = [
   { href: '/reports', label: 'Laporan & Analytics', icon: 'query_stats' },
   { href: '/finance', label: 'Keuangan', icon: 'account_balance_wallet' },
   { href: '/settings', label: 'Pengaturan Outlet', icon: 'settings' },
+  { href: '/outlets', label: 'Multi-Outlet', icon: 'hub' },
   { href: '/pos', label: 'Kasir POS', icon: 'point_of_sale' },
 ];
 

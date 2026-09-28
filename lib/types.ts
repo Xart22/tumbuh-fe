@@ -57,6 +57,7 @@ export type Outlet = {
   id: string;
   name: string;
   address?: string | null;
+  city?: string | null;
   phone?: string | null;
   timezone?: string;
 };
@@ -1166,4 +1167,22 @@ export type AuditLog = {
   actorEmail: string | null;
   requestId: string | null;
   createdAt: string;
+};
+
+// --- Multi-outlet ---------------------------------------------------------
+
+export type StockTransferItem = {
+  rawMaterialId: string;
+  rawMaterialName: string;
+  qty: number;
+};
+
+export type StockTransfer = {
+  id: string;
+  fromOutletId: string;
+  toOutletId: string;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+  items: StockTransferItem[];
 };
