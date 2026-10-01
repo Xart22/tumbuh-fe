@@ -1,4 +1,10 @@
-export type Role = 'owner' | 'manager' | 'supervisor' | 'cashier' | 'chef';
+export type Role =
+  | 'owner'
+  | 'manager'
+  | 'supervisor'
+  | 'cashier'
+  | 'chef'
+  | 'staff';
 
 export type OrderType = 'dine_in' | 'take_away' | 'delivery';
 
@@ -85,6 +91,8 @@ export type Product = {
   isAvailable: boolean;
   /** POS code (SKU/barcode); null when not set. */
   sku?: string | null;
+  /** Barcode / UPC for POS scan lookup; null when not set. */
+  barcode?: string | null;
   description?: string | null;
   /** Relative path under the BE `/uploads` mount (e.g. `/uploads/products/…`). */
   photoUrl?: string | null;
@@ -254,6 +262,9 @@ export type TopProduct = {
   name?: string;
   qty?: number;
   revenue?: number;
+  /** Relative BE upload path or absolute object-storage URL; null when unset. */
+  imageUrl?: string | null;
+  categoryName?: string | null;
   [key: string]: unknown;
 };
 
@@ -396,6 +407,9 @@ export type Recipe = {
 export type ProductMargin = {
   productId: string;
   productName: string;
+  /** Relative BE upload path or absolute object-storage URL; null when unset. */
+  imageUrl?: string | null;
+  categoryName?: string | null;
   price: number;
   cogs: number;
   margin: number;
@@ -594,17 +608,18 @@ export type ProfitLossReport = {
   outletId: string;
   dateFrom: string;
   dateTo: string;
-  wasteCost: number;
-  revenue: number;
+  grossSales: number;
   cogs: number;
-  extraCost: number;
-  totalCost: number;
   grossProfit: number;
-  grossMarginPct: number;
-  uncostedItems: number;
-  costedItems: number;
-  costCoveragePct: number;
-  itemCount: number;
+  operationalExpenses: number;
+  salaryExpenses: number;
+  rentExpense: number;
+  utilityExpense: number;
+  otherExpenses: number;
+  totalExpenses: number;
+  netProfit: number;
+  grossMargin: number;
+  netMargin: number;
 };
 
 export type CashFlowReport = {
@@ -673,8 +688,11 @@ export type WasteReport = {
 export type PayrollRow = {
   employeeId: string;
   employeeName: string;
+  payType: PayType;
   hours: number;
+  shiftCount: number;
   baseSalary: number;
+  shiftRate: number;
   timePay: number;
   salesTotal: number;
   commission: number;
@@ -791,6 +809,7 @@ export const EMPLOYEE_ROLES = [
   'supervisor',
   'manager',
   'chef',
+  'staff',
 ] as const;
 
 export type EmployeeRole = (typeof EMPLOYEE_ROLES)[number];
@@ -800,6 +819,17 @@ export const EMPLOYEE_ROLE_LABELS: Record<EmployeeRole, string> = {
   supervisor: 'Supervisor',
   manager: 'Manajer',
   chef: 'Chef',
+  staff: 'Staf (absen saja)',
+};
+
+export const PAY_TYPES = ['monthly', 'hourly', 'per_shift'] as const;
+
+export type PayType = (typeof PAY_TYPES)[number];
+
+export const PAY_TYPE_LABELS: Record<PayType, string> = {
+  monthly: 'Bulanan',
+  hourly: 'Per Jam',
+  per_shift: 'Per Shift',
 };
 
 export type Employee = {
@@ -809,6 +839,11 @@ export type Employee = {
   role: string;
   isActive: boolean;
   joinedAt?: string | null;
+  jobTitle: string | null;
+  payType: PayType;
+  baseSalary: number | null;
+  shiftRate: number | null;
+  commissionRate: number | null;
 };
 
 export type EmployeeOutlet = {
@@ -1006,13 +1041,130 @@ export type VoucherValidation = {
 
 // --- Keuangan -------------------------------------------------------------
 
+export type OrderItemModifier = {
+  modifierId: string;
+  modifierName: string;
+  priceAddition: number;
+  groupId?: string | null;
+  groupName?: string | null;
+};
+
+export type OrderItem = {
+  id: string;
+  productId: string;
+  variantId?: string | null;
+  productName: string | null;
+  variantName: string | null;
+  qty: number;
+  unitPrice: number;
+  total: number;
+  status?: string;
+  notes?: string | null;
+  modifiers: OrderItemModifier[];
+};
+
 export type OrderSummary = {
   id: string;
+  outletId?: string;
   orderNumber: string;
+  orderType?: OrderType;
   status: string;
   paymentStatus?: string;
+  subtotal?: number;
+  discountAmount?: number;
+  taxAmount?: number;
+  serviceCharge?: number;
   total: number;
+  notes?: string | null;
+  /** Table name (dine-in); null when the order has no table. */
+  tableNumber?: string | null;
+  /** Linked customer name; null for walk-in orders. */
+  customerName?: string | null;
   createdAt?: string;
+  items?: OrderItem[];
+};
+
+export type OrderDetail = OrderSummary & {
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt?: string;
+};
+
+// --- Kitchen Display (KDS) -------------------------------------------------
+
+export type KitchenItemStatus =
+  | 'pending'
+  | 'cooking'
+  | 'ready'
+  | 'served'
+  | 'voided';
+
+export type KitchenQueueItem = {
+  orderItemId: string;
+  orderId: string;
+  orderNumber: string;
+  tableId: string | null;
+  tableName: string | null;
+  orderType: OrderType;
+  orderCreatedAt?: string;
+  productId: string;
+  productName: string;
+  qty: number;
+  status: KitchenItemStatus;
+  station: string | null;
+  notes: string | null;
+  sentToKitchenAt: string | null;
+  queuedAt: string;
+  waitingMinutes: number | null;
+  overdue: boolean;
+  modifiers: Array<{ modifierName: string; priceAddition: number }>;
+};
+
+export type KitchenSummary = {
+  pending: number;
+  cooking: number;
+  ready: number;
+  active: number;
+};
+
+export type KitchenUpdateResult = {
+  orderItemId: string;
+  orderId: string;
+  status: KitchenItemStatus;
+};
+
+export type KitchenOrderResult = {
+  orderId: string;
+  totalItems: number;
+  items: KitchenUpdateResult[];
+};
+
+/** Server-generated receipt payload (`GET /v1/printers/receipt/:orderId`). */
+export type ReceiptData = {
+  header: { storeName: string; address: string; phone: string };
+  order: { number: string; type: OrderType; date: string };
+  items: Array<{
+    name: string;
+    qty: number;
+    unitPrice: number;
+    total: number;
+    notes: string | null;
+    modifiers: Array<{ name: string; price: number }>;
+  }>;
+  summary: {
+    subtotal: number;
+    discount: number;
+    tax: number;
+    serviceCharge: number;
+    total: number;
+  };
+  payments: Array<{
+    method: string;
+    amount: number;
+    changeAmount: number;
+    paidAt: string | null;
+  }>;
+  footer: { message: string };
 };
 
 export const EXPENSE_COST_TYPES = ['variable', 'fixed'] as const;

@@ -4,8 +4,8 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
+import { DropdownSearch } from '@/components/ui/dropdown-search';
 import type { Category, Product } from '@/lib/types';
-import { resolveProductVisual } from '../dashboard/dashboard-assets';
 import { ModifierEditor } from './modifier-editor';
 import { OutletOverrideEditor } from './outlet-override-editor';
 import { PhotoEditor } from './photo-editor';
@@ -78,6 +78,7 @@ export function ProductFormPanel({
   errorMessage,
   onClose,
   onSubmit,
+  onOpenStudio,
 }: {
   product: Product | null;
   categories: Category[];
@@ -85,6 +86,7 @@ export function ProductFormPanel({
   errorMessage?: string | null;
   onClose: () => void;
   onSubmit: (values: ProductFormValues) => void;
+  onOpenStudio?: () => void;
 }) {
   const editing = product !== null;
 
@@ -109,6 +111,11 @@ export function ProductFormPanel({
   });
 
   const isAvailable = useWatch({ control, name: 'isAvailable' });
+  const categoryId = useWatch({ control, name: 'categoryId' }) ?? '';
+  const categoryOptions = categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+  }));
   const submit = handleSubmit((values) => onSubmit(values));
 
   return (
@@ -147,11 +154,21 @@ export function ProductFormPanel({
         </button>
       </div>
 
+      {onOpenStudio && (
+        <button
+          type="button"
+          onClick={onOpenStudio}
+          className="flex items-center justify-center gap-2 rounded-xl bg-lp-primary/10 py-2.5 text-xs font-bold text-lp-primary transition hover:bg-lp-primary hover:text-lp-on-primary"
+        >
+          <Icon name="open_in_full" className="text-[16px]" />
+          <span>Buka Studio Resep BOM &amp; Margin</span>
+        </button>
+      )}
+
       {editing ? (
         <PhotoEditor
           productId={product.id}
           photoUrl={product.photoUrl}
-          fallbackImage={resolveProductVisual(product.name).image}
         />
       ) : (
         <NeedsSaved label="foto menu POS" />
@@ -176,18 +193,16 @@ export function ProductFormPanel({
             <label htmlFor="p-category" className={labelCls}>
               Kategori
             </label>
-            <select
+            <DropdownSearch
               id="p-category"
-              {...register('categoryId')}
-              className={inputCls}
-            >
-              <option value="">Tanpa kategori</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+              value={categoryId}
+              onChange={(val) =>
+                setValue('categoryId', val, { shouldValidate: true })
+              }
+              placeholder="Tanpa kategori"
+              searchPlaceholder="Cari kategori menu…"
+              options={categoryOptions}
+            />
             <FieldError />
           </div>
 

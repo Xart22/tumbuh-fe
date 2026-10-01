@@ -1,9 +1,10 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
+import { DropdownSearch } from '@/components/ui/dropdown-search';
 import { Overlay } from '@/components/overlay';
 import type { Supplier } from '@/lib/types';
 
@@ -70,6 +71,8 @@ export function InvoiceFormModal({
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceSchema),
@@ -80,6 +83,13 @@ export function InvoiceFormModal({
       dueDate: '',
     },
   });
+
+  const supplierId = useWatch({ control, name: 'supplierId' }) ?? '';
+  const supplierOptions = suppliers.map((supplier) => ({
+    value: supplier.id,
+    label: supplier.name,
+    subLabel: supplier.phone ? `Tel: ${supplier.phone}` : undefined,
+  }));
 
   return (
     <Overlay title="Catat Hutang Supplier" onClose={onClose}>
@@ -92,19 +102,16 @@ export function InvoiceFormModal({
           <label htmlFor="inv-sup" className={labelCls}>
             Supplier
           </label>
-          <select
+          <DropdownSearch
             id="inv-sup"
-            {...register('supplierId')}
-            aria-invalid={!!errors.supplierId}
-            className={inputCls}
-          >
-            {suppliers.length === 0 && <option value="">Belum ada supplier</option>}
-            {suppliers.map((supplier) => (
-              <option key={supplier.id} value={supplier.id}>
-                {supplier.name}
-              </option>
-            ))}
-          </select>
+            value={supplierId}
+            onChange={(val) =>
+              setValue('supplierId', val, { shouldValidate: true })
+            }
+            placeholder="Pilih supplier…"
+            searchPlaceholder="Cari supplier…"
+            options={supplierOptions}
+          />
           <FieldError message={errors.supplierId?.message} />
         </div>
 

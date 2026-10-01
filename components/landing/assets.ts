@@ -1,5 +1,5 @@
-export const LOGO_URL =
-  'https://lh3.googleusercontent.com/aida/AEtjO1WNKKPDmcO0WCfmpkNVLDNeSzedUCvdDqASvR1Rqk0Pga7zaVDrZv9qcbRdzKXHy9Y_e3SY3AnxS2CVa4aqS59mXpK6FQ6FrL0pWW_JpJyZZv67PnuoErssDgbBJjcWbFxydtjmWJVLXWF7DKGWmin6941QEFuqa0X0ho55mwVZ4K-OCnL881v0vf_SZCjhX9jhwhQ7sT4LEuqbKGnRTSSay1ntSJ0nO067bPnH1Wy7-I2E2khp17Tk1O6z';
+/** Local asset (was a Stitch CDN URL that now 403s). Replace with the real brand mark when available. */
+export const LOGO_URL = '/logo.svg';
 
 export const HERO_URL =
   'https://lh3.googleusercontent.com/aida/AEtjO1VEK3OgkPbybBQAMMgAejVe6EyIAIxVTS2f2HIeUg8sTt1oxxRpE1awsWNWdbjHF-ijWTWYb_XNOYK6j3wwQJ1dJ1Q8sWmbZvrzBA2P9_hnavJvzYfwAbuyPFF4almuUU3DdjesYKmwgCxfxSp4VbkDmPDv8z-SF9NTTP6W8med-Vq6VN66LrXGBYhP4no1JFyMp76zfNLsKvrlHccsLLzlbHzPY-BzlUHVZluIx0VCBdHR_4mW4thyzBdf';

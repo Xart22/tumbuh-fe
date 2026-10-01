@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Overlay } from '@/components/overlay';
 import {
   createPrinter,
@@ -69,6 +70,7 @@ export function PrinterPanel() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tested, setTested] = useState<string | null>(null);
+  const [printerToDelete, setPrinterToDelete] = useState<Printer | null>(null);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['printers'] });
@@ -142,7 +144,7 @@ export function PrinterPanel() {
                 <PrinterRow
                   key={printer.id}
                   printer={printer}
-                  onDelete={() => deleteM.mutate(printer.id)}
+                  onDelete={() => setPrinterToDelete(printer)}
                   onTest={() => testM.mutate(printer.id)}
                 />
               ))}
@@ -173,6 +175,24 @@ export function PrinterPanel() {
           />
         </Overlay>
       )}
+
+      <ConfirmDialog
+        open={printerToDelete !== null}
+        title={`Hapus Printer "${printerToDelete?.name}"?`}
+        description="Pengaturan printer kasir ini akan dihapus dari sistem."
+        confirmText="Ya, Hapus Printer"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteM.isPending}
+        onClose={() => setPrinterToDelete(null)}
+        onConfirm={() => {
+          if (printerToDelete) {
+            deleteM.mutate(printerToDelete.id, {
+              onSettled: () => setPrinterToDelete(null),
+            });
+          }
+        }}
+      />
     </div>
   );
 }
@@ -213,9 +233,7 @@ function PrinterRow({
           <button
             type="button"
             aria-label="Hapus printer"
-            onClick={() => {
-              if (window.confirm(`Hapus printer ${printer.name}?`)) onDelete();
-            }}
+            onClick={onDelete}
             className="rounded-lg p-1.5 text-lp-on-surface-variant hover:bg-lp-error-container hover:text-lp-on-error-container"
           >
             <Icon name="delete" className="text-[18px]" />

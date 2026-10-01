@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   confirmStockOpname,
   createStockOpname,
@@ -32,6 +33,7 @@ export function OpnameView({ canWrite }: { canWrite: boolean }) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpnameId, setConfirmOpnameId] = useState<string | null>(null);
 
   const listQ = useQuery({
     queryKey: ['inventory', 'opnames'],
@@ -160,16 +162,31 @@ export function OpnameView({ canWrite }: { canWrite: boolean }) {
             opname={detailQ.data}
             canWrite={canWrite}
             confirming={confirmM.isPending}
-            onConfirm={(id) => {
-              if (window.confirm('Selesaikan opname & terapkan penyesuaian stok?')) {
-                confirmM.mutate(id);
-              }
-            }}
+            onConfirm={(id) => setConfirmOpnameId(id)}
             onSaved={invalidate}
             onError={setError}
           />
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={confirmOpnameId !== null}
+        title="Selesaikan & Terapkan Opname?"
+        description="Hasil opname fisik akan disahkan dan penyesuaian stok akan langsung diterapkan ke master data gudang."
+        confirmText="Ya, Selesaikan Opname"
+        cancelText="Batal"
+        variant="primary"
+        icon="fact_check"
+        isLoading={confirmM.isPending}
+        onClose={() => setConfirmOpnameId(null)}
+        onConfirm={() => {
+          if (confirmOpnameId) {
+            confirmM.mutate(confirmOpnameId, {
+              onSettled: () => setConfirmOpnameId(null),
+            });
+          }
+        }}
+      />
     </section>
   );
 }

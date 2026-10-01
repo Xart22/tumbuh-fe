@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
+import { DropdownSearch } from '@/components/ui/dropdown-search';
 import { createWasteRecord, listWasteRecords } from '@/lib/api';
 import { formatIDR, formatQty } from '@/lib/format';
 import {
@@ -50,6 +51,13 @@ export function WasteView({
   });
   const records = recordsQ.data ?? [];
   const totalCost = records.reduce((sum, record) => sum + record.totalCost, 0);
+
+  const materialOptions = materials.map((m) => ({
+    value: m.id,
+    label: m.name,
+    badge: m.sku ?? undefined,
+    subLabel: `${m.unit} • Stok: ${formatQty(m.stockQty)}`,
+  }));
 
   const createM = useMutation({
     mutationFn: () =>
@@ -190,18 +198,14 @@ export function WasteView({
                 <label htmlFor="w-material" className={labelCls}>
                   Bahan
                 </label>
-                <select
+                <DropdownSearch
                   id="w-material"
                   value={materialId}
-                  onChange={(event) => setMaterialId(event.target.value)}
-                  className={inputCls}
-                >
-                  {materials.map((material) => (
-                    <option key={material.id} value={material.id}>
-                      {material.name} ({material.unit})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setMaterialId(val)}
+                  placeholder="Pilih bahan…"
+                  searchPlaceholder="Cari bahan baku / SKU…"
+                  options={materialOptions}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

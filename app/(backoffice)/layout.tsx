@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import { AuthGate } from '@/components/auth-gate';
 import { OutletBootstrap } from '@/components/outlet-bootstrap';
+import { jetbrainsMono, plusJakarta } from '@/lib/fonts';
+import { OwnerShell } from './dashboard/owner-shell';
 
 export const metadata: Metadata = { title: 'Backoffice · Tumbuh POS' };
 
-/** Auth only: each page owns its chrome (dark POS nav vs light owner shell). */
+/** Auth + shared owner chrome. Pages render only their content. */
 export default function BackofficeLayout({
   children,
 }: {
@@ -12,7 +14,11 @@ export default function BackofficeLayout({
 }) {
   return (
     <AuthGate requireOutlet={false}>
-      <OutletBootstrap>{children}</OutletBootstrap>
+      <OutletBootstrap>
+        <div className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}>
+          <OwnerShell>{children}</OwnerShell>
+        </div>
+      </OutletBootstrap>
     </AuthGate>
   );
 }

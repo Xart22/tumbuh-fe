@@ -1,15 +1,10 @@
-import { AppNav } from '@/components/app-nav';
+import type { Metadata } from 'next';
 import { ReportsDashboard } from './reports-dashboard';
 
-export const metadata = { title: 'Laporan · Tumbuh POS' };
+export const metadata: Metadata = {
+  title: 'Laporan & Analytics · Tumbuh POS',
+};
 
 export default function ReportsPage() {
-  return (
-    <div className="flex min-h-screen flex-col">
-      <AppNav />
-      <div className="flex-1">
-        <ReportsDashboard />
-      </div>
-    </div>
-  );
+  return <ReportsDashboard />;
 }

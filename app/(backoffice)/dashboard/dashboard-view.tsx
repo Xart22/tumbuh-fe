@@ -157,7 +157,7 @@ export function DashboardView() {
   const busyHours = hourly.filter((row) => (row.revenue ?? 0) > 0);
   const hourWindow = busyHours.length
     ? `${pad2(busyHours[0].hour)}:00–${pad2(busyHours[busyHours.length - 1].hour + 1)}:00 WIB`
-    : '08:00 - 22:00 WIB';
+    : null;
 
   const now = new Date();
   const isPeakNow = Boolean(
@@ -191,24 +191,26 @@ export function DashboardView() {
                     isPeakNow ? 'animate-ping' : ''
                   }`}
                 />
-                Peak Hour Alert
+                {isPeakNow ? 'Peak Hour' : 'Jam Operasional'}
               </span>
-              <span className="text-[11px] text-lp-on-primary-container/90">
-                {outletName ?? 'Kopi Tumbuh • Senopati Main Hall'}
-              </span>
+              {outletName && (
+                <span className="text-[11px] text-lp-on-primary-container/90">
+                  {outletName}
+                </span>
+              )}
             </div>
 
-            <h1 className="text-2xl font-bold tracking-tight text-lp-on-primary lg:text-3xl">
-              {greeting}, {user?.name ?? 'Dimas'}! {outletName ?? 'Outlet Senopati'} sedang jam
-              sibuk siang ☕
+            <h1
+              suppressHydrationWarning
+              className="text-2xl font-bold tracking-tight text-lp-on-primary lg:text-3xl"
+            >
+              {greeting}, {user?.name ?? 'Pengguna'}!
             </h1>
 
             <p className="text-sm leading-relaxed text-lp-on-primary/85">
               {orders > 0
-                ? `Arus pesanan aktif dengan ${formatNumber(orders)} transaksi tercatat (omzet ${formatIDR(gross)}). Estimasi table turnover optimal dengan ${
-                    active?.length ?? 3
-                  } terminal POS beroperasi.`
-                : 'Arus pesanan meningkat dalam jam operasional. Semua terminal POS terhubung optimal dan siap melayani pesanan kasir.'}
+                ? `Arus pesanan aktif dengan ${formatNumber(orders)} transaksi tercatat (omzet ${formatIDR(gross)}).`
+                : 'Belum ada transaksi tercatat hari ini.'}
             </p>
           </div>
 
@@ -254,12 +256,12 @@ export function DashboardView() {
         <KpiCard
           eyebrow="Omzet Hari Ini"
           title="Total Penjualan Kotor"
-          value={formatIDR(gross || 14850000)}
-          delta={hasPrev ? delta(gross, prevTotals.revenue) : 18.4}
+          value={formatIDR(gross)}
+          delta={hasPrev ? delta(gross, prevTotals.revenue) : null}
           note={
             hasPrev
               ? `vs kemarin ${formatIDR(prevTotals.revenue)}`
-              : 'vs kemarin Rp 12.540.000'
+              : 'Belum ada data pembanding'
           }
           icon="payments"
           accent="bg-lp-primary"
@@ -285,13 +287,13 @@ export function DashboardView() {
         <KpiCard
           eyebrow="Total Transaksi"
           title="Volume Struk"
-          value={formatNumber(orders || 342)}
+          value={formatNumber(orders)}
           unit="Struk"
-          delta={hasPrev ? delta(orders, prevTotals.orders) : 12.0}
+          delta={hasPrev ? delta(orders, prevTotals.orders) : null}
           note={
             hasPrev
               ? `${formatNumber(prevTotals.orders)} struk di jam sama`
-              : '305 struk di jam sama'
+              : 'Belum ada data pembanding'
           }
           icon="receipt_long"
           iconColor="text-lp-secondary"
@@ -302,9 +304,9 @@ export function DashboardView() {
         <KpiCard
           eyebrow="Average Order Value"
           title="Rata-rata / Tiket"
-          value={formatIDR(aov || 43420)}
-          delta={5.2}
-          note="target: Rp 41.200"
+          value={formatIDR(aov)}
+          delta={null}
+          note="Belum ada data pembanding"
           icon="shopping_basket"
           iconColor="text-lp-primary-container"
           accent="bg-lp-primary-container"
@@ -312,196 +314,58 @@ export function DashboardView() {
 
         {/* KPI 4: Terminal & Kru (Breakdown Kasir Aktif) */}
         <TerminalCrewCard
-          shifts={
-            active && active.length > 0
-              ? active
-              : [
-                  {
-                    terminalName: 'Pos 1 (Dine-in)',
-                    cashierName: 'Rian S.',
-                    role: 'cashier',
-                    startedAt: '',
-                    status: 'active',
-                  },
-                  {
-                    terminalName: 'Pos 2 (Takeaway)',
-                    cashierName: 'Siti M.',
-                    role: 'cashier',
-                    startedAt: '',
-                    status: 'active',
-                  },
-                  {
-                    terminalName: 'Barista Bar',
-                    cashierName: 'Kevin P.',
-                    role: 'barista',
-                    startedAt: '',
-                    status: 'active',
-                  },
-                ]
-          }
+          shifts={active}
           loading={shiftsQ.isPending}
         />
       </section>
 
       {/* SECTION TENGAH: GRAFIK PENJUALAN PER JAM (2/3) + PERINGATAN BAHAN BAKU (1/3) */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-stretch">
+        <div className="flex flex-col lg:col-span-2">
           {loading && hourly.length === 0 ? (
-            <div className="rounded-xl bg-lp-surface-container-lowest p-6 shadow-sm">
+            <div className="flex h-full min-h-[420px] items-center justify-center rounded-xl border border-lp-surface-container bg-lp-surface-container-lowest p-6 shadow-sm">
               <p className="text-sm text-lp-on-surface-variant">Memuat grafik penjualan…</p>
             </div>
           ) : (
             <HourlyChart
-              rows={
-                hourly.length > 0
-                  ? hourly
-                  : [
-                      { hour: 8, revenue: 450000, orders: 12 },
-                      { hour: 9, revenue: 700000, orders: 18 },
-                      { hour: 10, revenue: 850000, orders: 22 },
-                      { hour: 11, revenue: 1200000, orders: 31 },
-                      { hour: 12, revenue: 2800000, orders: 68 },
-                      { hour: 13, revenue: 2600000, orders: 62 },
-                      { hour: 14, revenue: 1300000, orders: 35 },
-                      { hour: 15, revenue: 800000, orders: 20 },
-                      { hour: 16, revenue: 950000, orders: 24 },
-                      { hour: 17, revenue: 1350000, orders: 34 },
-                      { hour: 18, revenue: 3100000, orders: 74 },
-                      { hour: 19, revenue: 2400000, orders: 58 },
-                      { hour: 20, revenue: 1100000, orders: 28 },
-                      { hour: 21, revenue: 550000, orders: 14 },
-                    ]
-              }
+              rows={hourly}
+              yesterdayRows={prevHourly}
               forecast={forecast}
-              outletName={outletName ?? 'Outlet Senopati'}
+              outletName={outletName ?? undefined}
               hourWindow={hourWindow}
+              className="h-full"
             />
           )}
         </div>
 
-        <StockAlertPanel
-          rows={
-            stockAlerts.length > 0
-              ? stockAlerts
-              : [
-                  {
-                    ingredientId: '1',
-                    name: 'Susu Fresh Milk Diamond',
-                    unit: 'Liter',
-                    currentQty: 4,
-                    minQty: 25,
-                    usageNote: 'Bahan Utama: Latte, Flat White, Aren',
-                    depletedAt: '18:00 WIB',
-                    status: 'critical',
-                  },
-                  {
-                    ingredientId: '2',
-                    name: 'Sirup Karamel Monin 700ml',
-                    unit: 'Botol',
-                    currentQty: 1,
-                    minQty: 5,
-                    usageNote: 'Flavored Latte & Cold Foam',
-                    depletedAt: 'Besok pagi',
-                    status: 'low',
-                  },
-                  {
-                    ingredientId: '3',
-                    name: 'Biji Kopi House Blend (Arabica 70:30)',
-                    unit: 'kg',
-                    currentQty: 1.2,
-                    minQty: 4.5,
-                    usageNote: 'Seluruh Menu Espresso Based',
-                    depletedAt: '~65 cup tersisa',
-                    status: 'low',
-                  },
-                ]
-          }
-          loading={stockQ.isPending}
-          inventoryValue={inventoryValue}
-        />
+        <div className="flex flex-col lg:col-span-1">
+          <StockAlertPanel
+            rows={stockAlerts}
+            loading={stockQ.isPending}
+            inventoryValue={inventoryValue}
+            className="h-full"
+          />
+        </div>
       </section>
 
       {/* SECTION BAWAH: TOP 5 PRODUK TERLARIS (1/2) + METODE PEMBAYARAN (1/2) */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TopProductsPanel
-          tops={
-            tops.length > 0
-              ? tops
-              : [
-                  {
-                    productId: 'p1',
-                    name: 'Kopi Susu Gula Aren Tumbuh',
-                    qty: 148,
-                    revenue: 3552000,
-                  },
-                  {
-                    productId: 'p2',
-                    name: 'Croissant Butter Artisan',
-                    qty: 64,
-                    revenue: 2048000,
-                  },
-                  {
-                    productId: 'p3',
-                    name: 'Matcha Latte Oat Milk',
-                    qty: 52,
-                    revenue: 1976000,
-                  },
-                  {
-                    productId: 'p4',
-                    name: 'Truffle Fries & Dip',
-                    qty: 41,
-                    revenue: 1558000,
-                  },
-                  {
-                    productId: 'p5',
-                    name: 'Nasi Ayam Sambal Matah',
-                    qty: 38,
-                    revenue: 1710000,
-                  },
-                ]
-          }
-          grossRevenue={gross || 14850000}
+          tops={tops}
+          grossRevenue={gross}
           loading={topsQ.isPending}
         />
 
         <PaymentMethodsPanel
-          rows={
-            methods.length > 0
-              ? methods
-              : [
-                  {
-                    method: 'qris',
-                    amount: 8613000,
-                    percentage: 58,
-                    transactionCount: 198,
-                  },
-                  {
-                    method: 'debit',
-                    amount: 3564000,
-                    percentage: 24,
-                    transactionCount: 82,
-                  },
-                  {
-                    method: 'cash',
-                    amount: 1782000,
-                    percentage: 12,
-                    transactionCount: 41,
-                  },
-                  {
-                    method: 'ewallet_gopay',
-                    amount: 891000,
-                    percentage: 6,
-                    transactionCount: 21,
-                  },
-                ]
-          }
+          rows={methods}
           cashDrawer={cashDrawer}
         />
       </section>
 
-      <p className="text-[11px] text-lp-tertiary">
-        Data {today}, dibandingkan dengan shift operasional jam 08:00–{pad2(hoursSoFar)}:59 pada{' '}
-        {yesterday}.
+      <p suppressHydrationWarning className="text-[11px] text-lp-tertiary">
+        {hoursSoFar >= 8
+          ? `Data ${today}, dibandingkan dengan shift operasional jam 08:00–${pad2(hoursSoFar)}:59 pada ${yesterday}.`
+          : `Data ${today}, dibandingkan dengan hari operasional sebelumnya (${yesterday}).`}
       </p>
     </div>
   );

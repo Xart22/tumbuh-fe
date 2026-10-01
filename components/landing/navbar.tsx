@@ -19,9 +19,10 @@ export function Navbar() {
           <Image
             alt="Tumbuh POS Logo"
             src={LOGO_URL}
-            width={160}
+            width={36}
             height={36}
-            className="h-9 w-auto object-contain"
+            className="h-9 w-9 object-contain"
+            unoptimized
             priority
           />
         </Link>

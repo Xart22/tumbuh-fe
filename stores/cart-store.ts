@@ -20,16 +20,21 @@ export type PendingLine = {
   notes: string;
 };
 
+export type CartCustomer = { id: string; name: string; phone: string | null };
+
 type CartState = {
   lines: CartLine[];
   orderType: OrderType;
   orderNotes: string;
+  customer: CartCustomer | null;
   setOrderType: (type: OrderType) => void;
   setOrderNotes: (notes: string) => void;
+  setCustomer: (customer: CartCustomer | null) => void;
   addLine: (line: PendingLine) => void;
   setQty: (key: string, qty: number) => void;
   setLineNotes: (key: string, notes: string) => void;
   removeLine: (key: string) => void;
+  replaceLines: (lines: CartLine[]) => void;
   clear: () => void;
 };
 
@@ -37,9 +42,13 @@ export const useCartStore = create<CartState>((set) => ({
   lines: [],
   orderType: 'dine_in',
   orderNotes: '',
+  customer: null,
+
+  replaceLines: (lines) => set({ lines }),
 
   setOrderType: (orderType) => set({ orderType }),
   setOrderNotes: (orderNotes) => set({ orderNotes }),
+  setCustomer: (customer) => set({ customer }),
 
   addLine: (line) =>
     set((state) => {
@@ -88,7 +97,7 @@ export const useCartStore = create<CartState>((set) => ({
   removeLine: (key) =>
     set((state) => ({ lines: state.lines.filter((l) => l.key !== key) })),
 
-  clear: () => set({ lines: [], orderNotes: '' }),
+  clear: () => set({ lines: [], orderNotes: '', customer: null }),
 }));
 
 export { cartSubtotal, cartCount } from '@/lib/order-math';

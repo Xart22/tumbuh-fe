@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   createCategory,
   deleteCategory,
@@ -35,6 +36,7 @@ export function CategoryManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -228,13 +230,7 @@ export function CategoryManager({
                         type="button"
                         aria-label={`Hapus ${category.name}`}
                         disabled={deleteM.isPending}
-                        onClick={() => {
-                          if (
-                            window.confirm(`Hapus kategori "${category.name}"?`)
-                          ) {
-                            deleteM.mutate(category.id);
-                          }
-                        }}
+                        onClick={() => setCategoryToDelete(category)}
                         className="rounded-lg p-1.5 text-lp-on-surface-variant hover:bg-lp-error-container hover:text-lp-on-error-container disabled:opacity-50"
                       >
                         <Icon name="delete" className="text-[18px]" />
@@ -305,6 +301,24 @@ export function CategoryManager({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={categoryToDelete !== null}
+        title={`Hapus Kategori "${categoryToDelete?.name}"?`}
+        description="Kategori akan dihapus. Produk yang menggunakan kategori ini akan diubah statusnya menjadi 'Tanpa kategori'."
+        confirmText="Ya, Hapus Kategori"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteM.isPending}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={() => {
+          if (categoryToDelete) {
+            deleteM.mutate(categoryToDelete.id, {
+              onSettled: () => setCategoryToDelete(null),
+            });
+          }
+        }}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Icon } from '@/components/icon';
+import { DropdownSearch } from '@/components/ui/dropdown-search';
 import { formatQty } from '@/lib/format';
 import type { Outlet, PurchaseOrder } from '@/lib/types';
 
@@ -37,6 +38,12 @@ export function DistributePoModal({
     ),
   );
   const [error, setError] = useState<string | null>(null);
+
+  const outletOptions = outlets.map((o) => ({
+    value: o.id,
+    label: o.name,
+    subLabel: o.address || undefined,
+  }));
 
   function submit() {
     if (!outletId) {
@@ -92,19 +99,14 @@ export function DistributePoModal({
           >
             Outlet Tujuan
           </label>
-          <select
+          <DropdownSearch
             id="dist-outlet"
             value={outletId}
-            onChange={(event) => setOutletId(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-600"
-          >
-            <option value="">Pilih outlet…</option>
-            {outlets.map((outlet) => (
-              <option key={outlet.id} value={outlet.id}>
-                {outlet.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setOutletId(val)}
+            placeholder="Pilih outlet tujuan…"
+            searchPlaceholder="Cari outlet / cabang…"
+            options={outletOptions}
+          />
         </div>
 
         <div className="flex flex-col gap-2">

@@ -34,7 +34,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid grid-cols-1 gap-10 border-b border-lp-surface-container pb-12 md:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-4 lg:col-span-2">
-            <Image alt="Tumbuh POS Logo" src={LOGO_URL} width={160} height={32} className="h-8 w-auto object-contain" />
+            <Image alt="Tumbuh POS Logo" src={LOGO_URL} width={32} height={32} className="h-8 w-8 object-contain" unoptimized />
             <p className="max-w-sm text-xs leading-relaxed text-lp-on-surface-variant sm:text-sm">
               Platform ekosistem Point of Sale &amp; Backoffice terintegrasi untuk bisnis
               F&amp;B Indonesia. Membantu kendalikan HPP resep presisi, cegah kebocoran

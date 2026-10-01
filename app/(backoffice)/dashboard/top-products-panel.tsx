@@ -1,9 +1,8 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Icon } from '@/components/icon';
+import { apiUrl } from '@/lib/api-client';
 import { formatIDR, formatNumber } from '@/lib/format';
 import type { TopProduct } from '@/lib/types';
-import { resolveProductVisual } from './dashboard-assets';
 
 export function TopProductsPanel({
   tops,
@@ -43,9 +42,11 @@ export function TopProductsPanel({
         ) : (
           <div className="mt-3 flex flex-col divide-y divide-lp-surface-container">
             {tops.map((product, index) => {
-              const visual = resolveProductVisual(product.name, index);
               const rankStr = String(index + 1).padStart(2, '0');
               const isFirst = index === 0;
+              const imageSrc = product.imageUrl
+                ? apiUrl(product.imageUrl)
+                : null;
 
               return (
                 <div
@@ -60,35 +61,35 @@ export function TopProductsPanel({
                     >
                       {rankStr}
                     </span>
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg shadow-sm">
-                      <Image
-                        src={visual.image}
-                        alt={product.name ?? 'Produk'}
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                      />
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-lp-surface-container shadow-sm">
+                      {imageSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={imageSrc}
+                          alt={product.name ?? 'Produk'}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-lp-tertiary">
+                          <Icon name="image" className="text-[20px]" />
+                        </span>
+                      )}
                     </div>
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate text-sm font-semibold text-lp-on-surface">
                         {product.name ?? '—'}
                       </span>
-                      <span className="truncate text-xs text-lp-tertiary">
-                        {visual.category}
-                      </span>
+                      {product.categoryName && (
+                        <span className="truncate text-xs text-lp-tertiary">
+                          {product.categoryName}
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex shrink-0 flex-col items-end pl-2">
                     <span className="font-lp-mono text-sm font-semibold text-lp-on-surface">
-                      {formatNumber(product.qty ?? 0)}{' '}
-                      <span className="font-lp-sans text-xs font-normal text-lp-tertiary">
-                        {visual.category.includes('Pastry') || visual.category.includes('Snack')
-                          ? 'Pcs'
-                          : visual.category.includes('Meal')
-                            ? 'Porsi'
-                            : 'Cups'}
-                      </span>
+                      {formatNumber(product.qty ?? 0)}
                     </span>
                     <span className="font-lp-mono text-xs font-medium text-lp-primary">
                       {formatIDR(product.revenue ?? 0)}

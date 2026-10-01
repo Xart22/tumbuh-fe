@@ -1,9 +1,10 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
+import { DropdownSearch } from '@/components/ui/dropdown-search';
 import type { Employee } from '@/lib/types';
 import { Overlay } from '@/components/overlay';
 
@@ -59,6 +60,8 @@ export function ScheduleFormModal({
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleSchema),
@@ -70,6 +73,14 @@ export function ScheduleFormModal({
       notes: '',
     },
   });
+
+  const employeeId = useWatch({ control, name: 'employeeId' }) ?? '';
+  const employeeOptions = employees.map((emp) => ({
+    value: emp.id,
+    label: emp.name,
+    badge: emp.role,
+    subLabel: emp.phone ? `Tel: ${emp.phone}` : undefined,
+  }));
 
   return (
     <Overlay
@@ -86,18 +97,16 @@ export function ScheduleFormModal({
           <label htmlFor="sc-emp" className={labelCls}>
             Karyawan
           </label>
-          <select
+          <DropdownSearch
             id="sc-emp"
-            {...register('employeeId')}
-            aria-invalid={!!errors.employeeId}
-            className={inputCls}
-          >
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.name}
-              </option>
-            ))}
-          </select>
+            value={employeeId}
+            onChange={(val) =>
+              setValue('employeeId', val, { shouldValidate: true })
+            }
+            placeholder="Pilih karyawan…"
+            searchPlaceholder="Cari karyawan / role…"
+            options={employeeOptions}
+          />
           <FieldError message={errors.employeeId?.message} />
         </div>
 

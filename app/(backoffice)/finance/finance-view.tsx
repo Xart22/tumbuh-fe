@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Overlay } from '@/components/overlay';
 import {
   accountingProvider,
@@ -89,6 +90,7 @@ function ExpensePanel() {
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
 
   const listQ = useQuery({
     queryKey: ['expenses', dateFrom, dateTo, category, page],
@@ -226,11 +228,7 @@ function ExpensePanel() {
                       <button
                         type="button"
                         aria-label="Hapus"
-                        onClick={() => {
-                          if (window.confirm('Hapus pengeluaran ini?')) {
-                            deleteM.mutate(row.id);
-                          }
-                        }}
+                        onClick={() => setExpenseToDelete(row.id)}
                         className="rounded-lg p-1.5 text-lp-on-surface-variant hover:bg-lp-error-container hover:text-lp-on-error-container"
                       >
                         <Icon name="delete" className="text-[18px]" />
@@ -290,6 +288,24 @@ function ExpensePanel() {
           onSubmit={(values) => createM.mutate(values)}
         />
       )}
+
+      <ConfirmDialog
+        open={expenseToDelete !== null}
+        title="Hapus Catatan Pengeluaran?"
+        description="Data pencatatan biaya pengeluaran ini akan dihapus dari laporan keuangan."
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteM.isPending}
+        onClose={() => setExpenseToDelete(null)}
+        onConfirm={() => {
+          if (expenseToDelete) {
+            deleteM.mutate(expenseToDelete, {
+              onSettled: () => setExpenseToDelete(null),
+            });
+          }
+        }}
+      />
     </div>
   );
 }
@@ -311,6 +327,10 @@ function PayablePanel() {
   });
   const invoices = invoicesQ.data ?? [];
   const suppliers = suppliersQ.data?.items ?? [];
+
+  const totalInvoice = invoices.reduce((s, i) => s + i.totalAmount, 0);
+  const totalPaid = invoices.reduce((s, i) => s + i.paidAmount, 0);
+  const outstanding = totalInvoice - totalPaid;
 
   const createM = useMutation({
     mutationFn: (values: InvoiceFormValues) => {
@@ -377,11 +397,38 @@ function PayablePanel() {
           Belum ada hutang supplier.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-lp-tertiary">
-                <th className="pb-2">Supplier</th>
+        <>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <div className="flex flex-col rounded-lg bg-lp-surface-low px-3 py-2">
+              <span className="text-[11px] font-semibold text-lp-tertiary">
+                Total Tagihan
+              </span>
+              <span className="font-lp-mono text-sm font-bold text-lp-on-surface">
+                {formatIDR(totalInvoice)}
+              </span>
+            </div>
+            <div className="flex flex-col rounded-lg bg-lp-surface-low px-3 py-2">
+              <span className="text-[11px] font-semibold text-lp-tertiary">
+                Sudah Dibayar
+              </span>
+              <span className="font-lp-mono text-sm font-bold text-lp-on-surface">
+                {formatIDR(totalPaid)}
+              </span>
+            </div>
+            <div className="flex flex-col rounded-lg bg-lp-error-container/40 px-3 py-2">
+              <span className="text-[11px] font-semibold text-lp-on-error-container">
+                Sisa Hutang{status ? ' (terfilter)' : ''}
+              </span>
+              <span className="font-lp-mono text-sm font-bold text-lp-error">
+                {formatIDR(outstanding)}
+              </span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wider text-lp-tertiary">
+                  <th className="pb-2">Supplier</th>
                 <th className="pb-2">Invoice</th>
                 <th className="pb-2">Jatuh tempo</th>
                 <th className="pb-2 text-right">Total</th>
@@ -436,7 +483,8 @@ function PayablePanel() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {showForm && (
@@ -550,10 +598,12 @@ function ReceivablePanel() {
   const queryClient = useQueryClient();
   const ordersQ = useQuery({
     queryKey: ['orders', 'credit'],
-    queryFn: () => listOrders('credit'),
+    queryFn: () => listOrders({ paymentStatus: 'credit' }),
   });
   const [error, setError] = useState<string | null>(null);
   const orders = ordersQ.data ?? [];
+
+  const totalReceivable = orders.reduce((s, o) => s + o.total, 0);
 
   const settleM = useMutation({
     mutationFn: (id: string) => settleCreditOrder(id),
@@ -590,11 +640,30 @@ function ReceivablePanel() {
           Tidak ada order kredit berjalan.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-lp-tertiary">
-                <th className="pb-2">Order</th>
+        <>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <div className="flex flex-col rounded-lg bg-lp-surface-low px-3 py-2">
+              <span className="text-[11px] font-semibold text-lp-tertiary">
+                Total Piutang
+              </span>
+              <span className="font-lp-mono text-sm font-bold text-lp-on-surface">
+                {formatIDR(totalReceivable)}
+              </span>
+            </div>
+            <div className="flex flex-col rounded-lg bg-lp-surface-low px-3 py-2">
+              <span className="text-[11px] font-semibold text-lp-tertiary">
+                Jumlah Order
+              </span>
+              <span className="font-lp-mono text-sm font-bold text-lp-on-surface">
+                {formatNumber(orders.length)}
+              </span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wider text-lp-tertiary">
+                  <th className="pb-2">Order</th>
                 <th className="pb-2">Tanggal</th>
                 <th className="pb-2 text-right">Nilai</th>
                 <th className="pb-2 text-right">Aksi</th>
@@ -628,7 +697,8 @@ function ReceivablePanel() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

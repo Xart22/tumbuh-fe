@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   createModifier,
   createModifierGroup,
@@ -47,6 +48,7 @@ export function ModifierEditor({ productId }: { productId: string }) {
   const [newModifierPrice, setNewModifierPrice] = useState<
     Record<string, string>
   >({});
+  const [groupToDelete, setGroupToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const key = ['menu', 'modifier-groups', productId];
   const groupsQ = useQuery({
@@ -162,11 +164,7 @@ export function ModifierEditor({ productId }: { productId: string }) {
                 type="button"
                 aria-label={`Hapus grup ${group.name}`}
                 disabled={deleteGroupM.isPending}
-                onClick={() => {
-                  if (window.confirm(`Hapus grup "${group.name}"?`)) {
-                    deleteGroupM.mutate(group.id);
-                  }
-                }}
+                onClick={() => setGroupToDelete(group)}
                 className="rounded-lg p-1 text-lp-on-surface-variant hover:bg-lp-error-container hover:text-lp-on-error-container"
               >
                 <Icon name="delete" className="text-[16px]" />
@@ -298,6 +296,24 @@ export function ModifierEditor({ productId }: { productId: string }) {
           {error}
         </p>
       )}
+
+      <ConfirmDialog
+        open={groupToDelete !== null}
+        title={`Hapus Grup Modifier "${groupToDelete?.name}"?`}
+        description="Grup opsi modifier ini beserta semua pilihannya akan dihapus dari produk."
+        confirmText="Ya, Hapus Grup"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteGroupM.isPending}
+        onClose={() => setGroupToDelete(null)}
+        onConfirm={() => {
+          if (groupToDelete) {
+            deleteGroupM.mutate(groupToDelete.id, {
+              onSettled: () => setGroupToDelete(null),
+            });
+          }
+        }}
+      />
     </div>
   );
 }

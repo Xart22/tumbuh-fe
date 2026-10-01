@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   approveScheduleSwap,
   clockIn,
@@ -28,6 +29,7 @@ import {
 import { formatIDR, formatNumber, formatQty, todayISO } from '@/lib/format';
 import {
   EMPLOYEE_ROLE_LABELS,
+  PAY_TYPE_LABELS,
   type Employee,
   type EmployeeRole,
   type ShiftSchedule,
@@ -49,6 +51,16 @@ const PANEL = 'rounded-xl bg-lp-surface-container-lowest p-4 shadow-sm';
 
 function roleLabel(role: string): string {
   return EMPLOYEE_ROLE_LABELS[role as EmployeeRole] ?? role;
+}
+
+function payRateLabel(employee: Employee): string {
+  if (employee.payType === 'per_shift') {
+    return `${formatIDR(employee.shiftRate ?? 0)}/shift`;
+  }
+  if (employee.payType === 'hourly') {
+    return `${formatIDR(employee.baseSalary ?? 0)}/bln ÷173`;
+  }
+  return `${formatIDR(employee.baseSalary ?? 0)}/bln`;
 }
 
 function pad(value: number): string {
@@ -140,17 +152,27 @@ function EmployeePanel() {
   const [editing, setEditing] = useState<Employee | null | 'new'>(null);
   const [outletTarget, setOutletTarget] = useState<Employee | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['employees'] });
 
   const saveM = useMutation({
     mutationFn: (values: EmployeeFormValues) => {
+      const baseSalary =
+        values.payType === 'per_shift' ? null : values.baseSalary ?? null;
+      const shiftRate =
+        values.payType === 'per_shift' ? values.shiftRate ?? null : null;
       if (editing && editing !== 'new') {
         const patch: Record<string, unknown> = {
           name: values.name.trim(),
           phone: values.phone?.trim() || undefined,
           role: values.role,
+          jobTitle: values.jobTitle?.trim() || null,
+          payType: values.payType,
+          baseSalary,
+          shiftRate,
+          commissionRate: values.commissionRate ?? null,
         };
         if (values.pin.trim()) patch.pin = values.pin.trim();
         return updateEmployee(editing.id, patch);
@@ -160,6 +182,11 @@ function EmployeePanel() {
         phone: values.phone?.trim() || undefined,
         role: values.role,
         pin: values.pin.trim(),
+        jobTitle: values.jobTitle?.trim() || undefined,
+        payType: values.payType,
+        baseSalary: baseSalary ?? undefined,
+        shiftRate: shiftRate ?? undefined,
+        commissionRate: values.commissionRate ?? undefined,
       });
     },
     onSuccess: () => {
@@ -228,6 +255,7 @@ function EmployeePanel() {
               <tr className="text-[11px] uppercase tracking-wider text-lp-tertiary">
                 <th className="pb-2">Nama</th>
                 <th className="pb-2">Peran</th>
+                <th className="pb-2">Skema Gaji</th>
                 <th className="pb-2">Nomor HP</th>
                 <th className="pb-2 text-center">Status</th>
                 <th className="pb-2 text-right">Aksi</th>
@@ -241,9 +269,25 @@ function EmployeePanel() {
                 >
                   <td className="py-2.5 font-semibold text-lp-on-surface">
                     {employee.name}
+                    {employee.jobTitle && (
+                      <span className="block text-[11px] font-normal text-lp-tertiary">
+                        {employee.jobTitle}
+                      </span>
+                    )}
                   </td>
                   <td className="py-2.5 text-lp-on-surface-variant">
                     {roleLabel(employee.role)}
+                  </td>
+                  <td className="py-2.5">
+                    <span className="block font-semibold text-lp-on-surface">
+                      {PAY_TYPE_LABELS[employee.payType]}
+                    </span>
+                    <span className="font-lp-mono text-[11px] text-lp-tertiary">
+                      {payRateLabel(employee)}
+                      {employee.commissionRate
+                        ? ` · ${employee.commissionRate}%`
+                        : ''}
+                    </span>
                   </td>
                   <td className="py-2.5 font-lp-mono text-lp-on-surface-variant">
                     {employee.phone ?? '—'}
@@ -283,15 +327,7 @@ function EmployeePanel() {
                         label="Hapus"
                         icon="delete"
                         tone="danger"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `Hapus karyawan ${employee.name}? Tindakan ini permanen.`,
-                            )
-                          ) {
-                            deleteM.mutate(employee.id);
-                          }
-                        }}
+                        onClick={() => setEmployeeToDelete(employee)}
                       />
                     </div>
                   </td>
@@ -318,6 +354,24 @@ function EmployeePanel() {
           onClose={() => setOutletTarget(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={employeeToDelete !== null}
+        title={`Hapus Karyawan "${employeeToDelete?.name}"?`}
+        description="Data profil, riwayat shift, dan akses kasir karyawan ini akan dihapus secara permanen."
+        confirmText="Ya, Hapus Karyawan"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteM.isPending}
+        onClose={() => setEmployeeToDelete(null)}
+        onConfirm={() => {
+          if (employeeToDelete) {
+            deleteM.mutate(employeeToDelete.id, {
+              onSettled: () => setEmployeeToDelete(null),
+            });
+          }
+        }}
+      />
     </div>
   );
 }

@@ -2,10 +2,42 @@ import { describe, expect, it } from 'vitest';
 import { employeeSchema, pinError } from './employee-form';
 
 describe('employeeSchema', () => {
-  const base = { name: 'Andi', phone: '0812', role: 'cashier' as const, pin: '1234' };
+  const base = {
+    name: 'Andi',
+    phone: '0812',
+    role: 'cashier' as const,
+    pin: '1234',
+    payType: 'monthly' as const,
+  };
 
   it('accepts a valid employee', () => {
     expect(employeeSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('accepts per-shift rates and a commission', () => {
+    const parsed = employeeSchema.safeParse({
+      ...base,
+      payType: 'per_shift',
+      shiftRate: '50000',
+      commissionRate: '1.5',
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.shiftRate).toBe(50000);
+      expect(parsed.data.commissionRate).toBe(1.5);
+    }
+  });
+
+  it('rejects a negative pay rate', () => {
+    expect(
+      employeeSchema.safeParse({ ...base, baseSalary: '-1' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a commission above 100%', () => {
+    expect(
+      employeeSchema.safeParse({ ...base, commissionRate: '150' }).success,
+    ).toBe(false);
   });
 
   it('requires a non-empty name', () => {

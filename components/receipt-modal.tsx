@@ -1,7 +1,16 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { formatIDR } from '@/lib/format';
-import type { CartLine, CreatedOrder, PaymentResult, OrderType } from '@/lib/types';
+import { generateReceipt, listPrinters } from '@/lib/api';
+import type {
+  CartLine,
+  CreatedOrder,
+  OrderType,
+  PaymentResult,
+  ReceiptData,
+} from '@/lib/types';
+import { Icon } from './icon';
 import { Button } from './pos-ui';
 
 const ORDER_TYPE_LABEL: Record<OrderType, string> = {
@@ -27,75 +36,164 @@ export function ReceiptModal({
 }) {
   const awaiting = payment.qris?.awaitingWebhook === true;
 
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [paperWidth, setPaperWidth] = useState(58);
+
+  useEffect(() => {
+    let cancelled = false;
+    generateReceipt(order.id)
+      .then((data) => {
+        if (!cancelled) setReceipt(data);
+      })
+      .catch(() => {
+        /* fall back to the client-side copy */
+      });
+    listPrinters()
+      .then((res) => {
+        if (cancelled) return;
+        const printer =
+          res.printers.find((p) => p.type === 'receipt') ?? res.printers[0];
+        if (printer?.paperWidth) setPaperWidth(printer.paperWidth);
+      })
+      .catch(() => {
+        /* keep default width */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [order.id]);
+
+  const storeName = receipt?.header.storeName ?? outletName ?? 'Tumbuh POS';
+  const address = receipt?.header.address ?? '';
+  const phone = receipt?.header.phone ?? '';
+
+  const items =
+    receipt?.items ??
+    lines.map((line) => ({
+      name: line.productName,
+      qty: line.qty,
+      unitPrice: line.unitPrice,
+      total: line.unitPrice * line.qty,
+      notes: line.notes ?? null,
+      modifiers: line.modifierGroups.flatMap((g) =>
+        g.selected.map((m) => ({ name: m.name, price: m.priceAddition })),
+      ),
+    }));
+
+  const summary =
+    receipt?.summary ?? {
+      subtotal: order.subtotal,
+      discount: order.discountAmount,
+      tax: order.taxAmount,
+      serviceCharge: order.serviceCharge,
+      total: order.total,
+    };
+
+  const payments =
+    receipt?.payments ??
+    payment.payments.map((p) => ({
+      method: p.method,
+      amount: p.amount,
+      changeAmount: payment.changeAmount,
+      paidAt: null,
+    }));
+
+  function handlePrint() {
+    if (typeof window !== 'undefined') window.print();
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="flex max-h-[92vh] w-full max-w-sm flex-col rounded-2xl border border-[var(--line)] bg-panel">
-        <div className="flex-1 overflow-y-auto p-4 font-mono text-xs text-ink">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 print:static print:bg-transparent print:backdrop-blur-none print:p-0">
+      <div className="flex max-h-[92vh] w-full max-w-sm flex-col rounded-2xl border border-lp-outline-variant/30 bg-lp-surface-container-lowest shadow-2xl overflow-hidden print:max-h-none print:w-auto print:rounded-none print:border-0 print:shadow-none">
+        <div
+          id="receipt-print"
+          className="flex-1 overflow-y-auto p-5 font-lp-mono text-xs text-slate-800 bg-white"
+          style={{ width: `${paperWidth}mm`, maxWidth: '100%', margin: '0 auto' }}
+        >
           <div className="text-center">
-            <p className="text-sm font-semibold">{outletName ?? 'Tumbuh POS'}</p>
-            <p className="text-muted">{ORDER_TYPE_LABEL[order.orderType]}</p>
-            <p className="text-muted">{order.orderNumber}</p>
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-lp-primary print:hidden">
+              <Icon name="check_circle" className="text-2xl" />
+            </div>
+            <p className="text-sm font-bold text-slate-900">{storeName}</p>
+            {address && <p className="text-[11px] text-slate-500 font-medium">{address}</p>}
+            {phone && <p className="text-[11px] text-slate-500 font-medium">Telp: {phone}</p>}
+            <p className="text-[11px] text-slate-500 font-medium">
+              {ORDER_TYPE_LABEL[order.orderType]}
+            </p>
+            <p className="text-[11px] font-bold text-slate-600 mt-0.5">{order.orderNumber}</p>
           </div>
 
-          <div className="my-3 border-t border-dashed border-[var(--line)]" />
+          <div className="my-3 border-t border-dashed border-slate-300" />
 
-          {lines.map((line) => (
-            <div key={line.key} className="mb-2">
-              <div className="flex justify-between">
-                <span>
-                  {line.qty}× {line.productName}
-                  {line.variantName ? ` (${line.variantName})` : ''}
-                </span>
-                <span>{formatIDR(line.unitPrice * line.qty)}</span>
-              </div>
-              {line.modifierGroups.map((g) =>
-                g.selected.map((m) => (
-                  <p key={`${g.groupId}-${m.id}`} className="pl-3 text-muted">
+          <div className="space-y-1.5">
+            {items.map((item, idx) => (
+              <div key={`${item.name}-${idx}`}>
+                <div className="flex justify-between font-medium">
+                  <span className="truncate pr-2">
+                    {item.qty}× {item.name}
+                  </span>
+                  <span className="shrink-0 font-bold">{formatIDR(item.total)}</span>
+                </div>
+                {item.modifiers.map((m, mi) => (
+                  <p key={`${item.name}-${idx}-m${mi}`} className="pl-3 text-[11px] text-slate-500">
                     + {m.name}
                   </p>
-                )),
-              )}
-              {line.notes && <p className="pl-3 text-muted">* {line.notes}</p>}
-            </div>
-          ))}
+                ))}
+                {item.notes && (
+                  <p className="pl-3 text-[11px] italic text-amber-700">* {item.notes}</p>
+                )}
+              </div>
+            ))}
+          </div>
 
-          <div className="my-3 border-t border-dashed border-[var(--line)]" />
+          <div className="my-3 border-t border-dashed border-slate-300" />
 
-          <Row label="Subtotal" value={formatIDR(order.subtotal)} />
-          {order.discountAmount > 0 && (
-            <Row label="Diskon" value={`-${formatIDR(order.discountAmount)}`} />
-          )}
-          {order.serviceCharge > 0 && (
-            <Row label="Service" value={formatIDR(order.serviceCharge)} />
-          )}
-          <Row label="Pajak" value={formatIDR(order.taxAmount)} />
-          <Row label="Total" value={formatIDR(order.total)} strong />
+          <div className="space-y-1">
+            <Row label="Subtotal" value={formatIDR(summary.subtotal)} />
+            {summary.discount > 0 && (
+              <Row label="Diskon" value={`-${formatIDR(summary.discount)}`} />
+            )}
+            {summary.serviceCharge > 0 && (
+              <Row label="Service" value={formatIDR(summary.serviceCharge)} />
+            )}
+            <Row label="Pajak" value={formatIDR(summary.tax)} />
+            <Row label="Total Tagihan" value={formatIDR(summary.total)} strong />
+          </div>
 
-          <div className="my-3 border-t border-dashed border-[var(--line)]" />
+          <div className="my-3 border-t border-dashed border-slate-300" />
 
-          {payment.payments.map((p) => (
-            <Row
-              key={p.id}
-              label={`${p.method} · ${p.status}`}
-              value={formatIDR(p.amount)}
-            />
-          ))}
-          <Row label="Dibayar" value={formatIDR(payment.totalTendered)} />
-          <Row label="Kembalian" value={formatIDR(payment.changeAmount)} />
+          <div className="space-y-1">
+            {payments.map((p, idx) => (
+              <Row key={`${p.method}-${idx}`} label={p.method} value={formatIDR(p.amount)} />
+            ))}
+            <Row label="Dibayar" value={formatIDR(payment.totalTendered)} />
+            <Row label="Kembalian" value={formatIDR(payment.changeAmount)} strong />
+          </div>
 
           {awaiting && (
-            <p className="mt-3 text-center text-amber-400">
-              Menunggu pembayaran {payment.qris?.provider ?? 'gateway'}…
-            </p>
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2 text-center text-[11px] text-amber-800 font-sans print:hidden">
+              Menunggu konfirmasi pembayaran {payment.qris?.provider ?? 'gateway'}…
+            </div>
           )}
+
+          <p className="mt-4 text-center text-[11px] font-medium text-slate-500">
+            {receipt?.footer.message ?? 'Terima Kasih!'}
+          </p>
         </div>
 
-        <div className="flex gap-2 border-t border-[var(--line)] p-4">
-          <Button variant="ghost" className="flex-1" onClick={onClose}>
-            Tutup
-          </Button>
-          <Button className="flex-1" onClick={onNewOrder}>
-            Order Baru
+        <div className="flex flex-col gap-2 border-t border-lp-outline-variant/20 bg-lp-surface-container-lowest p-4 print:hidden">
+          <div className="flex gap-2">
+            <Button variant="ghost" className="flex-1 text-xs" onClick={handlePrint}>
+              <Icon name="print" className="text-sm" />
+              <span>Cetak Struk</span>
+            </Button>
+            <Button variant="ghost" className="text-xs" onClick={onClose}>
+              Tutup
+            </Button>
+          </div>
+          <Button className="w-full text-xs font-bold" onClick={onNewOrder}>
+            <Icon name="add" className="text-sm" />
+            <span>Transaksi Baru</span>
           </Button>
         </div>
       </div>
@@ -113,8 +211,8 @@ function Row({
   strong?: boolean;
 }) {
   return (
-    <div className={`flex justify-between ${strong ? 'font-semibold' : ''}`}>
-      <span className={strong ? '' : 'text-muted'}>{label}</span>
+    <div className={`flex justify-between ${strong ? 'font-bold text-slate-900 text-sm' : 'text-slate-600'}`}>
+      <span>{label}</span>
       <span>{value}</span>
     </div>
   );

@@ -1,21 +1,54 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
 import {
   EMPLOYEE_ROLES,
   EMPLOYEE_ROLE_LABELS,
+  PAY_TYPES,
+  PAY_TYPE_LABELS,
   type Employee,
 } from '@/lib/types';
 import { Overlay } from '@/components/overlay';
 
+const optionalMoney = z.preprocess(
+  (value) =>
+    value === '' ||
+    value === null ||
+    value === undefined ||
+    (typeof value === 'number' && Number.isNaN(value))
+      ? undefined
+      : Number(value),
+  z.number({ error: 'Nilai tidak valid.' }).min(0, 'Tidak boleh negatif.').optional(),
+);
+
+const optionalPercent = z.preprocess(
+  (value) =>
+    value === '' ||
+    value === null ||
+    value === undefined ||
+    (typeof value === 'number' && Number.isNaN(value))
+      ? undefined
+      : Number(value),
+  z
+    .number({ error: 'Nilai tidak valid.' })
+    .min(0, 'Tidak boleh negatif.')
+    .max(100, 'Maksimal 100%.')
+    .optional(),
+);
+
 export const employeeSchema = z.object({
   name: z.string().trim().min(1, 'Nama wajib diisi.'),
+  jobTitle: z.string().trim().max(100, 'Jabatan maksimal 100 karakter.').optional(),
   phone: z.string().trim().max(20, 'Nomor HP maksimal 20 karakter.').optional(),
   role: z.enum(EMPLOYEE_ROLES),
   pin: z.string(),
+  payType: z.enum(PAY_TYPES),
+  baseSalary: optionalMoney,
+  shiftRate: optionalMoney,
+  commissionRate: optionalPercent,
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeSchema>;
@@ -61,17 +94,25 @@ export function EmployeeFormModal({
   const {
     register,
     handleSubmit,
+    control,
     setError,
     formState: { errors },
-  } = useForm<EmployeeFormValues>({
+  } = useForm({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
       name: employee?.name ?? '',
+      jobTitle: employee?.jobTitle ?? '',
       phone: employee?.phone ?? '',
       role: (employee?.role as EmployeeFormValues['role']) ?? 'cashier',
       pin: '',
+      payType: employee?.payType ?? 'monthly',
+      baseSalary: employee?.baseSalary ?? undefined,
+      shiftRate: employee?.shiftRate ?? undefined,
+      commissionRate: employee?.commissionRate ?? undefined,
     },
   });
+
+  const payType = useWatch({ control, name: 'payType' });
 
   return (
     <Overlay
@@ -105,6 +146,20 @@ export function EmployeeFormModal({
           <FieldError message={errors.name?.message} />
         </div>
 
+        <div>
+          <label htmlFor="e-jobtitle" className={labelCls}>
+            Jabatan <span className="normal-case">(opsional)</span>
+          </label>
+          <input
+            id="e-jobtitle"
+            {...register('jobTitle')}
+            placeholder="Barista, Satpam, …"
+            aria-invalid={!!errors.jobTitle}
+            className={inputCls}
+          />
+          <FieldError message={errors.jobTitle?.message} />
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="e-phone" className={labelCls}>
@@ -136,6 +191,84 @@ export function EmployeeFormModal({
             </select>
             <FieldError message={errors.role?.message} />
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="e-paytype" className={labelCls}>
+              Skema Gaji
+            </label>
+            <select
+              id="e-paytype"
+              {...register('payType')}
+              className={inputCls}
+            >
+              {PAY_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {PAY_TYPE_LABELS[type]}
+                </option>
+              ))}
+            </select>
+            <FieldError message={errors.payType?.message} />
+          </div>
+          {payType === 'per_shift' ? (
+            <div>
+              <label htmlFor="e-shift-rate" className={labelCls}>
+                Tarif / Shift
+              </label>
+              <input
+                id="e-shift-rate"
+                type="number"
+                min={0}
+                step={1000}
+                placeholder="50000"
+                {...register('shiftRate')}
+                aria-invalid={!!errors.shiftRate}
+                className={inputCls}
+              />
+              <FieldError message={errors.shiftRate?.message} />
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="e-base-salary" className={labelCls}>
+                Gaji Pokok / Bulan
+              </label>
+              <input
+                id="e-base-salary"
+                type="number"
+                min={0}
+                step={1000}
+                placeholder="3000000"
+                {...register('baseSalary')}
+                aria-invalid={!!errors.baseSalary}
+                className={inputCls}
+              />
+              <FieldError message={errors.baseSalary?.message} />
+              {payType === 'hourly' && (
+                <p className="-mt-2 text-[11px] text-lp-tertiary">
+                  Dibayar per jam: gaji ÷ 173 × jam kerja.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="e-commission" className={labelCls}>
+            Komisi dari Omzet (%)
+          </label>
+          <input
+            id="e-commission"
+            type="number"
+            min={0}
+            max={100}
+            step={0.1}
+            placeholder="0"
+            {...register('commissionRate')}
+            aria-invalid={!!errors.commissionRate}
+            className={inputCls}
+          />
+          <FieldError message={errors.commissionRate?.message} />
         </div>
 
         <div>

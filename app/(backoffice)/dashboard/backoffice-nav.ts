@@ -2,6 +2,7 @@
 export const NAV: Array<{ href: string; label: string; icon: string }> = [
   { href: '/dashboard', label: 'Dashboard Utama', icon: 'grid_view' },
   { href: '/menu', label: 'Manajemen Menu', icon: 'restaurant_menu' },
+  { href: '/tables', label: 'Denah Meja & Area', icon: 'table_restaurant' },
   { href: '/inventory', label: 'Inventori & Stok', icon: 'inventory_2' },
   { href: '/employees', label: 'Karyawan & Shift', icon: 'badge' },
   { href: '/customers', label: 'Pelanggan & CRM', icon: 'loyalty' },
@@ -12,6 +13,4 @@ export const NAV: Array<{ href: string; label: string; icon: string }> = [
   { href: '/pos', label: 'Kasir POS', icon: 'point_of_sale' },
 ];
 
-export const SOON: Array<{ label: string; icon: string }> = [
-  { label: 'Pesanan & Meja', icon: 'table_restaurant' },
-];
+export const SOON: Array<{ label: string; icon: string }> = [];

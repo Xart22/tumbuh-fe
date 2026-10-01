@@ -35,14 +35,17 @@ export function pageWindow(page: number, totalPages: number): Array<number | nul
   return window;
 }
 
-/** Returns appropriate emoji/icon prefix for category chips matching Stitch design. */
+/**
+ * Material Symbols glyph name for a category chip, matched by keyword.
+ * Render with `<Icon name={...} />` — never emoji (see `AGENTS.md`).
+ */
 export function getCategoryIcon(name?: string | null): string {
-  if (!name) return '🍴';
+  if (!name) return 'restaurant_menu';
   const lower = name.toLowerCase();
-  if (lower.includes('kopi') || lower.includes('coffee') || lower.includes('espresso')) return '☕';
-  if (lower.includes('tea') || lower.includes('teh') || lower.includes('non-coffee')) return '🍵';
-  if (lower.includes('bakery') || lower.includes('pastry') || lower.includes('roti') || lower.includes('croissant')) return '🥐';
-  if (lower.includes('makan') || lower.includes('rice') || lower.includes('nasi') || lower.includes('meal')) return '🍛';
-  if (lower.includes('camilan') || lower.includes('snack') || lower.includes('fries') || lower.includes('kentang')) return '🍟';
-  return '🍴';
+  if (lower.includes('kopi') || lower.includes('coffee') || lower.includes('espresso')) return 'local_cafe';
+  if (lower.includes('tea') || lower.includes('teh') || lower.includes('non-coffee')) return 'local_cafe';
+  if (lower.includes('bakery') || lower.includes('pastry') || lower.includes('roti') || lower.includes('croissant')) return 'bakery_dining';
+  if (lower.includes('makan') || lower.includes('rice') || lower.includes('nasi') || lower.includes('meal')) return 'restaurant';
+  if (lower.includes('camilan') || lower.includes('snack') || lower.includes('fries') || lower.includes('kentang')) return 'fastfood';
+  return 'restaurant_menu';
 }

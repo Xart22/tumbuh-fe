@@ -63,16 +63,17 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-lp-background font-lp-sans text-lp-on-surface">
-      <aside className="fixed left-0 top-0 z-50 hidden h-full w-72 flex-col justify-between bg-lp-surface-container-lowest shadow-sm lg:flex">
+      <aside className="fixed left-0 top-0 z-50 hidden h-full w-72 flex-col justify-between overflow-y-auto scrollbar-thin bg-lp-surface-container-lowest shadow-sm lg:flex">
         <div className="flex flex-col">
           <div className="flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-2">
               <Image
                 alt="Logo Tumbuh POS"
                 src={LOGO_URL}
-                width={120}
+                width={32}
                 height={32}
-                className="h-8 w-auto object-contain"
+                className="h-8 w-8 object-contain"
+                unoptimized
               />
               <span className="font-lp-sans text-base font-semibold">Tumbuh POS</span>
             </div>
@@ -206,7 +207,10 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3">
             <div className="hidden xl:flex flex-col items-end">
-              <span className="text-xs font-semibold text-lp-on-surface">
+              <span
+                suppressHydrationWarning
+                className="text-xs font-semibold text-lp-on-surface"
+              >
                 {new Date().toLocaleDateString('id-ID', {
                   weekday: 'long',
                   day: 'numeric',
@@ -214,7 +218,10 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
                   year: 'numeric',
                 })}
               </span>
-              <span className="font-lp-mono text-[11px] text-lp-on-surface-variant">
+              <span
+                suppressHydrationWarning
+                className="font-lp-mono text-[11px] text-lp-on-surface-variant"
+              >
                 {new Date().toLocaleTimeString('id-ID', {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -249,7 +256,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
               </span>
               <div className="flex flex-col">
                 <span className="flex items-center gap-1">
-                  <span className="text-xs font-semibold">{user?.name ?? 'Dimas Pratama'}</span>
+                  <span className="text-xs font-semibold">{user?.name ?? '—'}</span>
                   <span className="rounded bg-lp-primary-container px-1.5 py-0.5 text-[10px] font-semibold text-lp-on-primary-container">
                     {roleLabel(user?.role)}
                   </span>

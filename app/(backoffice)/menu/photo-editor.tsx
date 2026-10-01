@@ -13,11 +13,9 @@ const MAX_BYTES = 5 * 1024 * 1024; // matches the BE FileInterceptor limit
 export function PhotoEditor({
   productId,
   photoUrl,
-  fallbackImage,
 }: {
   productId: string;
   photoUrl?: string | null;
-  fallbackImage?: string;
 }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +54,7 @@ export function PhotoEditor({
     upload.mutate(selected);
   }
 
-  const current = preview ?? (photoUrl ? apiUrl(photoUrl) : fallbackImage ?? null);
+  const current = preview ?? (photoUrl ? apiUrl(photoUrl) : null);
 
   return (
     <div className="flex flex-col gap-2">

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { apiUrl } from '@/lib/api-client';
 import {
   createProduct,
@@ -16,74 +17,16 @@ import {
 import { formatIDR } from '@/lib/format';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Product } from '@/lib/types';
-import { resolveProductVisual } from '../dashboard/dashboard-assets';
 import { CategoryManager } from './category-manager';
 import { BundlesManager } from './bundles-manager';
 import { getCategoryIcon, pageWindow } from './menu-utils';
 import { ProductFormPanel, type ProductFormValues } from './product-form';
+import { ProductStudio } from './product-studio';
 
 const PAGE_SIZE = 20;
 const PANEL = 'rounded-xl bg-lp-surface-container-lowest shadow-sm';
 
 type StatusFilter = '' | 'available' | 'sold_out';
-
-const DEMO_PRODUCTS: Product[] = [
-  {
-    id: 'demo-1',
-    name: 'Kopi Susu Gula Aren',
-    categoryId: 'cat-kopi',
-    outletId: 'out-1',
-    basePrice: 24000,
-    sku: 'KOP-001',
-    description: 'Espresso house blend 100% Arabica dengan fresh milk pasteurisasi dan sirup gula aren organik Garut.',
-    isAvailable: true,
-    photoUrl: null,
-  },
-  {
-    id: 'demo-2',
-    name: 'Iced Americano Double',
-    categoryId: 'cat-kopi',
-    outletId: 'out-1',
-    basePrice: 20000,
-    sku: 'KOP-002',
-    description: 'Double shot espresso dengan air dingin dan es batu kristal.',
-    isAvailable: true,
-    photoUrl: null,
-  },
-  {
-    id: 'demo-3',
-    name: 'Croissant Butter Artisan',
-    categoryId: 'cat-bakery',
-    outletId: 'out-1',
-    basePrice: 28000,
-    sku: 'BAK-001',
-    description: 'Freshly baked French butter croissant dengan lapisan renyah dan mentega gurih.',
-    isAvailable: true,
-    photoUrl: null,
-  },
-  {
-    id: 'demo-4',
-    name: 'Smoked Beef Bagel',
-    categoryId: 'cat-bakery',
-    outletId: 'out-1',
-    basePrice: 38000,
-    sku: 'BAK-003',
-    description: 'Bagel wijen dengan irisan daging sapi asap lezat dan saus keju cheddar.',
-    isAvailable: false,
-    photoUrl: null,
-  },
-  {
-    id: 'demo-5',
-    name: 'Nasi Daun Jeruk Ayam Krispi',
-    categoryId: 'cat-meal',
-    outletId: 'out-1',
-    basePrice: 35000,
-    sku: 'MAK-001',
-    description: 'Nasi wangi daun jeruk dengan fillet ayam goreng renyah dan sambal matah.',
-    isAvailable: true,
-    photoUrl: null,
-  },
-];
 
 export function MenuView() {
   const role = useAuthStore((s) => s.user?.role);
@@ -100,9 +43,13 @@ export function MenuView() {
   const [categoryId, setCategoryId] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<{ product: Product | null } | null>(null);
+  const [studioProduct, setStudioProduct] = useState<Product | null | undefined>(
+    undefined,
+  );
   const [formError, setFormError] = useState<string | null>(null);
   const [managingCategories, setManagingCategories] = useState(false);
   const [managingBundles, setManagingBundles] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -144,11 +91,9 @@ export function MenuView() {
   const facets = productsQ.data;
   const counts = facets?.counts;
   const categories = categoriesQ.data ?? [];
-  const rawProducts = facets?.items ?? [];
-  const displayProducts =
-    rawProducts.length > 0 || productsQ.isPending ? rawProducts : DEMO_PRODUCTS;
+  const displayProducts = useMemo(() => facets?.items ?? [], [facets]);
 
-  const total = facets?.total ?? (rawProducts.length === 0 ? DEMO_PRODUCTS.length : 0);
+  const total = facets?.total ?? 0;
   const totalPages = facets?.totalPages ?? 1;
 
   // Auto-select first item on initial load to match Stitch editor state
@@ -159,12 +104,8 @@ export function MenuView() {
     }
   }, [displayProducts, selected]);
 
-  const categoryName = (id: string | null) => {
-    if (id === 'cat-kopi') return 'Kopi & Espresso';
-    if (id === 'cat-bakery') return 'Artisan Bakery';
-    if (id === 'cat-meal') return 'Makanan Utama';
-    return categories.find((cat) => cat.id === id)?.name ?? 'Katalog F&B';
-  };
+  const categoryName = (id: string | null) =>
+    categories.find((cat) => cat.id === id)?.name ?? 'Tanpa kategori';
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['menu', 'products'] });
@@ -182,7 +123,7 @@ export function MenuView() {
         availabilityStart: values.availabilityStart || null,
         availabilityEnd: values.availabilityEnd || null,
       };
-      return selected?.product && !selected.product.id.startsWith('demo-')
+      return selected?.product
         ? updateProduct(selected.product.id, input)
         : createProduct(input);
     },
@@ -237,20 +178,29 @@ export function MenuView() {
     },
   });
 
+  if (studioProduct !== undefined) {
+    return (
+      <ProductStudio
+        product={studioProduct}
+        categories={categories}
+        onClose={() => setStudioProduct(undefined)}
+        onSaved={(saved) => {
+          setStudioProduct(undefined);
+          setSelected({ product: saved });
+          invalidate();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex w-full flex-col gap-6">
       {/* Page Header */}
       <section className="flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
         <div className="flex flex-col">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-lp-primary">
-              Katalog F&amp;B Outlet
-            </span>
-            <span className="h-1 w-1 rounded-full bg-lp-outline-variant" />
-            <span className="text-[11px] text-lp-on-surface-variant">
-              Live Menu Sync
-            </span>
-          </div>
+          <span className="mb-1 text-[11px] font-bold uppercase tracking-wider text-lp-primary">
+            Katalog F&amp;B Outlet
+          </span>
           <h1 className="text-2xl font-bold tracking-tight text-lp-on-surface lg:text-3xl">
             Manajemen Menu &amp; Produk
           </h1>
@@ -284,7 +234,7 @@ export function MenuView() {
               type="button"
               onClick={() => {
                 setFormError(null);
-                setSelected({ product: null });
+                setStudioProduct(null);
               }}
               className="flex h-11 items-center gap-2 rounded-lg bg-lp-primary px-4 text-sm font-bold text-lp-on-primary shadow-md transition hover:bg-lp-primary-container"
             >
@@ -332,13 +282,13 @@ export function MenuView() {
                 className="h-11 w-full cursor-pointer appearance-none rounded-lg bg-lp-surface-low pl-4 pr-10 text-sm font-medium text-lp-on-surface outline-none focus:bg-lp-surface-container"
               >
                 <option value="">
-                  Semua Status{counts ? ` (${counts.all})` : ' (48)'}
+                  Semua Status{counts ? ` (${counts.all})` : ''}
                 </option>
                 <option value="available">
-                  Aktif &amp; Dijual{counts ? ` (${counts.available})` : ' (42)'}
+                  Aktif &amp; Dijual{counts ? ` (${counts.available})` : ''}
                 </option>
                 <option value="sold_out">
-                  Habis / Nonaktif{counts ? ` (${counts.soldOut})` : ' (4)'}
+                  Habis / Nonaktif{counts ? ` (${counts.soldOut})` : ''}
                 </option>
               </select>
               <Icon
@@ -346,23 +296,6 @@ export function MenuView() {
                 className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-lp-tertiary"
               />
             </div>
-
-            <button
-              type="button"
-              title="Filter Tambahan"
-              className="flex h-11 items-center gap-1.5 rounded-lg bg-lp-surface-low px-3.5 text-sm font-semibold text-lp-on-surface transition hover:bg-lp-surface-container"
-            >
-              <Icon name="tune" className="text-[20px] text-lp-tertiary" />
-              <span className="hidden sm:inline">Filter</span>
-            </button>
-
-            <button
-              type="button"
-              title="Import / Export Excel atau CSV"
-              className="flex h-11 items-center justify-center rounded-lg bg-lp-surface-low px-3 text-lp-on-surface transition hover:bg-lp-surface-container"
-            >
-              <Icon name="import_export" className="text-[20px] text-lp-tertiary" />
-            </button>
           </div>
         </div>
 
@@ -396,8 +329,12 @@ export function MenuView() {
                   : 'bg-lp-surface-low text-lp-on-surface-variant hover:bg-lp-surface-container hover:text-lp-on-surface'
               }`}
             >
-              <span>
-                {getCategoryIcon(category.name)} {category.name}
+              <span className="flex items-center gap-1">
+                <Icon
+                  name={getCategoryIcon(category.name)}
+                  className="text-[16px]"
+                />
+                {category.name}
               </span>
               {facets?.categoryCounts && (
                 <span className="rounded-full bg-lp-surface-container-highest px-1.5 py-0.2 font-lp-mono text-[10px] text-lp-on-surface">
@@ -431,28 +368,12 @@ export function MenuView() {
                   Daftar Produk
                 </span>
                 <span className="rounded-full bg-lp-primary-container px-2 py-0.5 text-[11px] font-semibold text-lp-on-primary-container">
-                  {displayProducts.length} Terpilih di Halaman Ini
+                  {displayProducts.length} item di halaman ini
                 </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  title="Tampilan Agenda"
-                  className="rounded-lg bg-lp-surface-container p-2 text-lp-on-surface-variant transition hover:text-lp-on-surface"
-                >
-                  <Icon name="view_agenda" className="text-[18px]" />
-                </button>
-                <button
-                  type="button"
-                  title="Tampilan List"
-                  className="rounded-lg bg-lp-surface-container-lowest p-2 text-lp-primary shadow-xs transition"
-                >
-                  <Icon name="view_list" className="text-[18px]" />
-                </button>
               </div>
             </div>
 
-            {productsQ.isPending && rawProducts.length === 0 ? (
+            {productsQ.isPending && displayProducts.length === 0 ? (
               <p className="p-4 text-sm text-lp-on-surface-variant">Memuat produk…</p>
             ) : productsQ.isError ? (
               <p className="p-4 text-sm text-lp-error">
@@ -484,12 +405,11 @@ export function MenuView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {displayProducts.map((product, idx) => {
+                    {displayProducts.map((product) => {
                       const active = selected?.product?.id === product.id;
-                      const visual = resolveProductVisual(product.name, idx);
                       const displayImg = product.photoUrl
                         ? apiUrl(product.photoUrl)
-                        : visual.image;
+                        : null;
 
                       return (
                         <tr
@@ -507,14 +427,20 @@ export function MenuView() {
                           <td className="px-4 py-3.5">
                             <div className="flex min-w-48 items-center gap-3">
                               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-lp-surface-container shadow-sm">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={displayImg}
-                                  alt={product.name}
-                                  className={`h-full w-full object-cover ${
-                                    product.isAvailable ? '' : 'grayscale'
-                                  }`}
-                                />
+                                {displayImg ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={displayImg}
+                                    alt={product.name}
+                                    className={`h-full w-full object-cover ${
+                                      product.isAvailable ? '' : 'grayscale'
+                                    }`}
+                                  />
+                                ) : (
+                                  <span className="flex h-full w-full items-center justify-center text-lp-tertiary">
+                                    <Icon name="image" className="text-[20px]" />
+                                  </span>
+                                )}
                                 <span
                                   className={`absolute left-1 top-1 h-2 w-2 rounded-full ring-2 ring-lp-surface-container-lowest ${
                                     product.isAvailable
@@ -537,19 +463,13 @@ export function MenuView() {
                                   <span className="font-lp-mono text-[11px] text-lp-tertiary">
                                     {product.sku || 'Tanpa SKU'}
                                   </span>
-                                  <span className="h-1 w-1 rounded-full bg-lp-outline-variant" />
-                                  {!product.isAvailable ? (
-                                    <span className="rounded bg-lp-error-container px-1.5 py-0.2 font-lp-sans text-[10px] font-bold text-lp-on-error-container">
-                                      Stok Habis
-                                    </span>
-                                  ) : idx === 2 ? (
-                                    <span className="rounded bg-lp-secondary-container/20 px-1.5 py-0.2 font-lp-sans text-[10px] font-bold text-lp-on-secondary-container">
-                                      Sisa 3 Porsi
-                                    </span>
-                                  ) : (
-                                    <span className="text-[11px] text-lp-tertiary">
-                                      2 Varian
-                                    </span>
+                                  {!product.isAvailable && (
+                                    <>
+                                      <span className="h-1 w-1 rounded-full bg-lp-outline-variant" />
+                                      <span className="rounded bg-lp-error-container px-1.5 py-0.2 font-lp-sans text-[10px] font-bold text-lp-on-error-container">
+                                        Stok Habis
+                                      </span>
+                                    </>
                                   )}
                                 </div>
                               </div>
@@ -573,15 +493,10 @@ export function MenuView() {
                                 aria-label={`Tampil di POS: ${product.name}`}
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  if (!product.id.startsWith('demo-')) {
-                                    availabilityMutation.mutate({
-                                      id: product.id,
-                                      isAvailable: !product.isAvailable,
-                                    });
-                                  } else {
-                                    product.isAvailable = !product.isAvailable;
-                                    setSelected({ product: { ...product } });
-                                  }
+                                  availabilityMutation.mutate({
+                                    id: product.id,
+                                    isAvailable: !product.isAvailable,
+                                  });
                                 }}
                                 className={`relative h-5 w-9 rounded-full transition disabled:opacity-50 ${
                                   product.isAvailable
@@ -616,8 +531,7 @@ export function MenuView() {
                                   aria-label={`Edit ${product.name}`}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    setFormError(null);
-                                    setSelected({ product });
+                                    setStudioProduct(product);
                                   }}
                                   className="flex h-8 w-8 items-center justify-center rounded-lg bg-lp-primary/10 text-lp-primary transition hover:bg-lp-primary hover:text-lp-on-primary"
                                 >
@@ -629,9 +543,7 @@ export function MenuView() {
                                   disabled={duplicateMutation.isPending}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    if (!product.id.startsWith('demo-')) {
-                                      duplicateMutation.mutate(product);
-                                    }
+                                    duplicateMutation.mutate(product);
                                   }}
                                   className="flex h-8 w-8 items-center justify-center rounded-lg text-lp-on-surface-variant transition hover:bg-lp-surface-container disabled:opacity-50"
                                 >
@@ -646,17 +558,7 @@ export function MenuView() {
                                   disabled={deleteMutation.isPending}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    if (
-                                      window.confirm(
-                                        `Hapus "${product.name}" dari katalog POS?`,
-                                      )
-                                    ) {
-                                      if (!product.id.startsWith('demo-')) {
-                                        deleteMutation.mutate(product.id);
-                                      } else {
-                                        setSelected(null);
-                                      }
-                                    }
+                                    setProductToDelete(product);
                                   }}
                                   className="flex h-8 w-8 items-center justify-center rounded-lg text-lp-error transition hover:bg-lp-error-container/40 disabled:opacity-50"
                                 >
@@ -750,12 +652,10 @@ export function MenuView() {
               </span>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-lp-on-surface">
-                  Integrasi Bahan Baku Otomatis Aktif
+                  Resep &amp; HPP Bahan Baku
                 </span>
                 <span className="text-xs text-lp-tertiary">
-                  {selected?.product
-                    ? `Setiap penjualan ${selected.product.name} akan memotong stok bahan baku dan mencatat HPP resep otomatis.`
-                    : 'Setiap penjualan menu POS memotong stok bahan baku resep di inventori secara real-time.'}
+                  Susun resep per menu di halaman Inventori untuk menghitung HPP dan pemakaian bahan.
                 </span>
               </div>
             </div>
@@ -782,6 +682,7 @@ export function MenuView() {
                 setFormError(null);
               }}
               onSubmit={(values) => saveMutation.mutate(values)}
+              onOpenStudio={() => setStudioProduct(selected.product)}
             />
           ) : (
             <div className="flex flex-col items-center gap-2 rounded-xl bg-lp-surface-container-lowest p-8 text-center shadow-sm">
@@ -811,6 +712,24 @@ export function MenuView() {
       {managingBundles && (
         <BundlesManager onClose={() => setManagingBundles(false)} />
       )}
+
+      <ConfirmDialog
+        open={productToDelete !== null}
+        title={`Hapus Menu "${productToDelete?.name}"?`}
+        description="Menu ini akan dihapus dari katalog POS kasir dan tidak dapat dipulihkan."
+        confirmText="Ya, Hapus Menu"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+        onClose={() => setProductToDelete(null)}
+        onConfirm={() => {
+          if (productToDelete) {
+            deleteMutation.mutate(productToDelete.id, {
+              onSettled: () => setProductToDelete(null),
+            });
+          }
+        }}
+      />
     </div>
   );
 }

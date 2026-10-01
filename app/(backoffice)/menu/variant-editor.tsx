@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   createVariant,
   deleteVariant,
@@ -34,6 +35,7 @@ export function VariantEditor({ productId }: { productId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: '', adjustment: '0' });
+  const [variantToDelete, setVariantToDelete] = useState<ProductVariant | null>(null);
 
   const key = ['menu', 'variants', productId];
   const variantsQ = useQuery({
@@ -208,11 +210,7 @@ export function VariantEditor({ productId }: { productId: string }) {
                     type="button"
                     aria-label={`Hapus varian ${variant.name}`}
                     disabled={deleteM.isPending}
-                    onClick={() => {
-                      if (window.confirm(`Hapus varian "${variant.name}"?`)) {
-                        deleteM.mutate(variant.id);
-                      }
-                    }}
+                    onClick={() => setVariantToDelete(variant)}
                     className="rounded-lg p-1 text-lp-on-surface-variant hover:bg-lp-error-container hover:text-lp-on-error-container"
                   >
                     <Icon name="delete" className="text-[16px]" />
@@ -265,6 +263,24 @@ export function VariantEditor({ productId }: { productId: string }) {
           {error}
         </p>
       )}
+
+      <ConfirmDialog
+        open={variantToDelete !== null}
+        title={`Hapus Varian "${variantToDelete?.name}"?`}
+        description="Varian ukuran/porsi ini akan dihapus dari pilihan menu di kasir."
+        confirmText="Ya, Hapus Varian"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteM.isPending}
+        onClose={() => setVariantToDelete(null)}
+        onConfirm={() => {
+          if (variantToDelete) {
+            deleteM.mutate(variantToDelete.id, {
+              onSettled: () => setVariantToDelete(null),
+            });
+          }
+        }}
+      />
     </div>
   );
 }

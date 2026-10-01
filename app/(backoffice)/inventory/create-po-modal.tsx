@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
-import { formatIDR } from '@/lib/format';
+import { DropdownSearch } from '@/components/ui/dropdown-search';
+import { formatIDR, formatQty } from '@/lib/format';
 import type { RawMaterial, Supplier } from '@/lib/types';
 
 export const poItemSchema = z.object({
@@ -62,6 +63,19 @@ export function CreatePoModal({
       : [{ rawMaterialId: materials[0]?.id ?? '', qtyOrdered: '1', unitPrice: '' }],
   );
   const [error, setError] = useState<string | null>(null);
+
+  const supplierOptions = suppliers.map((supplier) => ({
+    value: supplier.id,
+    label: supplier.name,
+    subLabel: supplier.phone ? `Tel: ${supplier.phone}` : undefined,
+  }));
+
+  const materialOptions = materials.map((material) => ({
+    value: material.id,
+    label: material.name,
+    badge: material.sku ?? undefined,
+    subLabel: `${material.unit} • Stok: ${formatQty(material.stockQty)}`,
+  }));
 
   const total = items.reduce((sum, item) => {
     const qty = Number(item.qtyOrdered || 0);
@@ -129,19 +143,14 @@ export function CreatePoModal({
             <label htmlFor="po-supplier" className={labelCls}>
               Supplier
             </label>
-            <select
+            <DropdownSearch
               id="po-supplier"
               value={supplierId}
-              onChange={(event) => setSupplierId(event.target.value)}
-              className={inputCls}
-            >
-              <option value="">Pilih supplier…</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSupplierId(val)}
+              placeholder="Pilih supplier…"
+              searchPlaceholder="Cari supplier…"
+              options={supplierOptions}
+            />
           </div>
           <div>
             <label htmlFor="po-date" className={labelCls}>
@@ -161,20 +170,19 @@ export function CreatePoModal({
           <span className={labelCls}>Baris Bahan</span>
           {items.map((item, index) => (
             <div key={index} className="flex items-center gap-2">
-              <select
-                value={item.rawMaterialId}
-                aria-label={`Bahan baris ${index + 1}`}
-                onChange={(event) =>
-                  updateItem(index, { rawMaterialId: event.target.value })
-                }
-                className={`${inputCls} flex-1`}
-              >
-                {materials.map((material) => (
-                  <option key={material.id} value={material.id}>
-                    {material.name} ({material.unit})
-                  </option>
-                ))}
-              </select>
+              <div className="flex-1 min-w-0">
+                <DropdownSearch
+                  size="sm"
+                  value={item.rawMaterialId}
+                  aria-label={`Bahan baris ${index + 1}`}
+                  onChange={(val) =>
+                    updateItem(index, { rawMaterialId: val })
+                  }
+                  placeholder="Pilih bahan…"
+                  searchPlaceholder="Cari bahan baku / SKU…"
+                  options={materialOptions}
+                />
+              </div>
               <input
                 value={item.qtyOrdered}
                 onChange={(event) =>

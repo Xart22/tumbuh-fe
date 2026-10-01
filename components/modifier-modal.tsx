@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { formatIDR } from '@/lib/format';
 import type { ModifierGroup, ProductVariant } from '@/lib/types';
 import type { PendingLine } from '@/stores/cart-store';
+import { Icon } from './icon';
 import { Button, Field, Input } from './pos-ui';
 
 type Selection = Record<string, string[]>;
@@ -103,23 +104,25 @@ export function ModifierModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4">
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl border border-[var(--line)] bg-panel sm:rounded-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-xs p-0 sm:items-center sm:p-4">
+      <div className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl border border-lp-outline-variant/30 bg-lp-surface-container-lowest shadow-2xl sm:rounded-2xl overflow-hidden">
+        <div className="flex items-start justify-between gap-4 border-b border-lp-outline-variant/20 bg-lp-surface-container-lowest p-4">
           <div>
-            <h2 className="text-base font-semibold text-ink">{productName}</h2>
-            <p className="text-sm text-muted">Total {formatIDR(unitBase + additions)}</p>
+            <h2 className="text-base font-bold text-lp-on-surface">{productName}</h2>
+            <p className="text-xs font-semibold text-lp-on-surface-variant font-lp-mono mt-0.5">
+              Total <span className="text-lp-primary font-bold">{formatIDR(unitBase + additions)}</span>
+            </p>
           </div>
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" onClick={onCancel} className="py-1 px-3 text-xs">
             Tutup
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {activeVariants.length > 0 && (
-            <div className="mb-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
-                Varian
+            <div>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-lp-on-surface-variant">
+                Varian Produk
               </p>
               <div className="flex flex-wrap gap-2">
                 {activeVariants.map((v) => (
@@ -127,15 +130,15 @@ export function ModifierModal({
                     key={v.id}
                     type="button"
                     onClick={() => setVariantId(v.id)}
-                    className={`rounded-lg border px-3 py-2 text-sm ${
+                    className={`rounded-xl border px-3 py-2 text-xs transition-all ${
                       v.id === variantId
-                        ? 'border-teal-600 bg-teal-950/40 text-ink'
-                        : 'border-[var(--line)] text-muted hover:text-ink'
+                        ? 'border-lp-primary bg-emerald-50 text-lp-primary font-bold shadow-xs'
+                        : 'border-lp-outline-variant/30 bg-lp-surface-low text-lp-on-surface-variant hover:bg-lp-surface-container hover:text-lp-on-surface font-medium'
                     }`}
                   >
-                    {v.name}
+                    <span>{v.name}</span>
                     {v.priceAdjustment !== 0 && (
-                      <span className="ml-1 text-xs">
+                      <span className="ml-1 text-[11px] font-lp-mono">
                         {v.priceAdjustment > 0 ? '+' : ''}
                         {formatIDR(v.priceAdjustment)}
                       </span>
@@ -147,10 +150,10 @@ export function ModifierModal({
           )}
 
           {groups.map((group) => (
-            <div key={group.id} className="mb-4">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+            <div key={group.id}>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-lp-on-surface-variant">
                 {group.name}
-                <span className="ml-2 normal-case">
+                <span className="ml-1.5 normal-case font-medium text-lp-outline">
                   {group.isRequired ? '(wajib)' : `(maks ${group.maxSelect})`}
                 </span>
               </p>
@@ -164,15 +167,15 @@ export function ModifierModal({
                         key={modifier.id}
                         type="button"
                         onClick={() => toggle(group, modifier.id)}
-                        className={`rounded-lg border px-3 py-2 text-sm ${
+                        className={`rounded-xl border px-3 py-2 text-xs transition-all ${
                           picked
-                            ? 'border-teal-600 bg-teal-950/40 text-ink'
-                            : 'border-[var(--line)] text-muted hover:text-ink'
+                            ? 'border-lp-primary bg-emerald-50 text-lp-primary font-bold shadow-xs'
+                            : 'border-lp-outline-variant/30 bg-lp-surface-low text-lp-on-surface-variant hover:bg-lp-surface-container hover:text-lp-on-surface font-medium'
                         }`}
                       >
-                        {modifier.name}
+                        <span>{modifier.name}</span>
                         {modifier.priceAddition !== 0 && (
-                          <span className="ml-1 text-xs">
+                          <span className="ml-1 text-[11px] font-lp-mono">
                             +{formatIDR(modifier.priceAddition)}
                           </span>
                         )}
@@ -183,20 +186,27 @@ export function ModifierModal({
             </div>
           ))}
 
-          <Field label="Catatan">
+          <Field label="Catatan Tambahan">
             <Input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="tanpa bawang, es sedikit…"
+              placeholder="Contoh: tanpa bawang, es sedikit..."
+              className="text-xs"
             />
           </Field>
 
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 flex items-center gap-1.5">
+              <Icon name="error" className="text-sm" />
+              <span>{error}</span>
+            </div>
+          )}
         </div>
 
-        <div className="border-t border-[var(--line)] p-4">
-          <Button className="w-full" onClick={confirm}>
-            Tambah · {formatIDR(unitBase + additions)}
+        <div className="border-t border-lp-outline-variant/20 bg-lp-surface-container-lowest p-4">
+          <Button className="w-full h-11 text-sm font-bold shadow-sm flex items-center justify-center gap-2" onClick={confirm}>
+            <Icon name="add_circle" className="text-base" />
+            <span>Tambah ke Pesanan · {formatIDR(unitBase + additions)}</span>
           </Button>
         </div>
       </div>

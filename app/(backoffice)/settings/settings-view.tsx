@@ -9,28 +9,47 @@ import {
   updateOutletProfile,
   updateOutletSettings,
 } from '@/lib/api';
-import type { OutletSettings } from '@/lib/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { AuditPanel } from './audit-panel';
+import { BrandingPanel } from './branding-panel';
 import { PrinterPanel } from './printer-panel';
 import {
+  DeliveryForm,
+  FoodCostTargetForm,
+  LoyaltyForm,
+  OperatingHoursForm,
   OpsForm,
   OutletProfileForm,
   TaxForm,
+  toDeliveryPatch,
+  toLoyaltyPatch,
   toOpsPatch,
   toProfilePayload,
   toTaxPatch,
+  type DeliveryValues,
+  type LoyaltyValues,
   type OpsValues,
   type OutletProfileValues,
   type TaxValues,
 } from './settings-forms';
 
-type Tab = 'outlet' | 'pajak' | 'operasional' | 'printer' | 'audit';
+type Tab =
+  | 'outlet'
+  | 'pajak'
+  | 'operasional'
+  | 'pengiriman'
+  | 'loyalty'
+  | 'storefront'
+  | 'printer'
+  | 'audit';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'outlet', label: 'Profil Outlet' },
   { id: 'pajak', label: 'Pajak & Biaya' },
   { id: 'operasional', label: 'Operasional' },
+  { id: 'pengiriman', label: 'Pengiriman' },
+  { id: 'loyalty', label: 'Loyalty' },
+  { id: 'storefront', label: 'Storefront' },
   { id: 'printer', label: 'Printer' },
   { id: 'audit', label: 'Log Aktivitas' },
 ];
@@ -83,6 +102,18 @@ export function SettingsView() {
       {tab === 'pajak' && <SettingsTab outletId={outletId} kind="tax" />}
       {tab === 'operasional' && (
         <SettingsTab outletId={outletId} kind="ops" />
+      )}
+      {tab === 'pengiriman' && (
+        <SettingsTab outletId={outletId} kind="delivery" />
+      )}
+      {tab === 'loyalty' && <SettingsTab outletId={outletId} kind="loyalty" />}
+      {tab === 'storefront' && (
+        <div className={PANEL}>
+          <h2 className="mb-3 text-base font-semibold text-lp-on-surface">
+            Branding Storefront
+          </h2>
+          <BrandingPanel />
+        </div>
       )}
       {tab === 'printer' && (
         <div className={PANEL}>
@@ -177,7 +208,8 @@ function OutletTab({ outletId }: { outletId: string }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <div className={`${PANEL} lg:col-span-2`}>
         <h2 className="mb-3 text-base font-semibold text-lp-on-surface">
           Profil Outlet
@@ -241,7 +273,18 @@ function OutletTab({ outletId }: { outletId: string }) {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+
+      <div className={PANEL}>
+        <h2 className="mb-1 text-base font-semibold text-lp-on-surface">
+          Jam Operasional
+        </h2>
+        <p className="mb-3 text-xs text-lp-on-surface-variant">
+          Jam buka outlet per hari (dipakai storefront &amp; status buka).
+        </p>
+        <OperatingHoursForm outlet={outlet} />
+      </div>
+    </>
   );
 }
 
@@ -250,7 +293,7 @@ function SettingsTab({
   kind,
 }: {
   outletId: string;
-  kind: 'tax' | 'ops';
+  kind: 'tax' | 'ops' | 'delivery' | 'loyalty';
 }) {
   const queryClient = useQueryClient();
   const q = useOutlet(outletId);
@@ -258,7 +301,7 @@ function SettingsTab({
   const [saved, setSaved] = useState(false);
 
   const patchM = useMutation({
-    mutationFn: (patch: Partial<OutletSettings>) =>
+    mutationFn: (patch: Record<string, unknown>) =>
       updateOutletSettings(outletId, patch),
     onSuccess: () => {
       setError(null);
@@ -285,14 +328,40 @@ function SettingsTab({
   return (
     <div className={PANEL}>
       <h2 className="mb-3 text-base font-semibold text-lp-on-surface">
-        {kind === 'tax' ? 'Pajak & Biaya' : 'Operasional'}
+        {kind === 'tax'
+          ? 'Pajak & Biaya'
+          : kind === 'delivery'
+            ? 'Pengiriman'
+            : kind === 'loyalty'
+              ? 'Loyalty & CRM'
+              : 'Operasional'}
       </h2>
       {kind === 'tax' ? (
-        <TaxForm
+        <>
+          <TaxForm
+            settings={settings}
+            pending={patchM.isPending}
+            errorMessage={error}
+            onSubmit={(values: TaxValues) => patchM.mutate(toTaxPatch(values))}
+          />
+          <FoodCostTargetForm
+            outletId={outletId}
+            current={settings.targets.foodCostPct}
+          />
+        </>
+      ) : kind === 'delivery' ? (
+        <DeliveryForm
           settings={settings}
           pending={patchM.isPending}
           errorMessage={error}
-          onSubmit={(values: TaxValues) => patchM.mutate(toTaxPatch(values))}
+          onSubmit={(values: DeliveryValues) => patchM.mutate(toDeliveryPatch(values))}
+        />
+      ) : kind === 'loyalty' ? (
+        <LoyaltyForm
+          settings={settings}
+          pending={patchM.isPending}
+          errorMessage={error}
+          onSubmit={(values: LoyaltyValues) => patchM.mutate(toLoyaltyPatch(values))}
         />
       ) : (
         <OpsForm

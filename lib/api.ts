@@ -62,6 +62,7 @@ import type {
   EmployeeSalesReport,
   Employee,
   EmployeeOutlet,
+  PayType,
   Shift,
   CurrentShift,
   ShiftCloseResult,
@@ -78,6 +79,13 @@ import type {
   Voucher,
   VoucherValidation,
   OrderSummary,
+  OrderDetail,
+  KitchenItemStatus,
+  KitchenQueueItem,
+  KitchenSummary,
+  KitchenUpdateResult,
+  KitchenOrderResult,
+  ReceiptData,
   Expense,
   SupplierInvoice,
   AccountingProvider,
@@ -313,6 +321,7 @@ export type ProductInput = {
   categoryId?: string | null;
   basePrice: number;
   sku?: string;
+  barcode?: string;
   description?: string;
   isAvailable?: boolean;
   /** `HH:MM` or null to clear the window (all-day). */
@@ -536,6 +545,72 @@ export function deleteModifier(modifierId: string): Promise<unknown> {
   return apiFetch(`/v1/modifiers/${modifierId}`, { method: 'DELETE' });
 }
 
+// --- Kitchen Display (KDS) ------------------------------------------------
+
+export function kitchenSummary(): Promise<KitchenSummary> {
+  return apiFetch<KitchenSummary>('/v1/kitchen/summary');
+}
+
+export function kitchenQueue(params?: {
+  status?: KitchenItemStatus;
+  station?: string;
+}): Promise<KitchenQueueItem[]> {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set('status', params.status);
+  if (params?.station) qs.set('station', params.station);
+  const suffix = qs.toString() ? `?${qs}` : '';
+  return apiFetch<KitchenQueueItem[]>(`/v1/kitchen/queue${suffix}`);
+}
+
+export function setKitchenItemStatus(
+  orderItemId: string,
+  status: KitchenItemStatus,
+): Promise<KitchenUpdateResult> {
+  return apiFetch<KitchenUpdateResult>(
+    `/v1/kitchen/items/${orderItemId}/status`,
+    { method: 'PATCH', body: { status } },
+  );
+}
+
+export function bumpKitchenItem(
+  orderItemId: string,
+): Promise<KitchenUpdateResult> {
+  return apiFetch<KitchenUpdateResult>(
+    `/v1/kitchen/items/${orderItemId}/bump`,
+    { method: 'PATCH' },
+  );
+}
+
+export function recallKitchenItem(
+  orderItemId: string,
+): Promise<KitchenUpdateResult> {
+  return apiFetch<KitchenUpdateResult>(
+    `/v1/kitchen/items/${orderItemId}/recall`,
+    { method: 'PATCH' },
+  );
+}
+
+export function bumpKitchenOrder(orderId: string): Promise<KitchenOrderResult> {
+  return apiFetch<KitchenOrderResult>(`/v1/kitchen/orders/${orderId}/bump`, {
+    method: 'PATCH',
+  });
+}
+
+/** Finish the whole ticket: mark every active item served. */
+export function serveKitchenOrder(orderId: string): Promise<KitchenOrderResult> {
+  return apiFetch<KitchenOrderResult>(`/v1/kitchen/orders/${orderId}/serve`, {
+    method: 'PATCH',
+  });
+}
+
+export function recallKitchenOrder(
+  orderId: string,
+): Promise<KitchenOrderResult> {
+  return apiFetch<KitchenOrderResult>(`/v1/kitchen/orders/${orderId}/recall`, {
+    method: 'PATCH',
+  });
+}
+
 // --- Orders ---------------------------------------------------------------
 
 export type CreateOrderLine = {
@@ -558,6 +633,8 @@ export type CreateOrderInput = {
   customerId?: string;
   tableId?: string;
   notes?: string;
+  /** Bill Parkir: create with status "held" instead of "confirmed". */
+  park?: boolean;
 };
 
 export function createOrder(input: CreateOrderInput): Promise<CreatedOrder> {
@@ -568,11 +645,138 @@ export function createOrder(input: CreateOrderInput): Promise<CreatedOrder> {
   });
 }
 
-export function listOrders(paymentStatus?: string): Promise<OrderSummary[]> {
-  const qs = paymentStatus
-    ? `?paymentStatus=${encodeURIComponent(paymentStatus)}`
-    : '';
-  return apiFetch<OrderSummary[]>(`/v1/orders${qs}`);
+export function listOrders(params?: {
+  paymentStatus?: string;
+  status?: string;
+}): Promise<OrderSummary[]> {
+  const qs = new URLSearchParams();
+  if (params?.paymentStatus) qs.set('paymentStatus', params.paymentStatus);
+  if (params?.status) qs.set('status', params.status);
+  const suffix = qs.toString() ? `?${qs}` : '';
+  return apiFetch<OrderSummary[]>(`/v1/orders${suffix}`);
+}
+
+/** Order detail including items and table/customer names. */
+export function getOrder(orderId: string): Promise<OrderDetail> {
+  return apiFetch<OrderDetail>(`/v1/orders/${orderId}`);
+}
+
+/** A dining table for the POS / table map. */
+export type PosTable = {
+  id: string;
+  outletId: string;
+  areaId: string | null;
+  name: string;
+  capacity: number;
+  status: string;
+  isActive: boolean;
+  occupiedSince: string | null;
+  occupiedMinutes: number;
+};
+
+export function listTables(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<Paginated<PosTable>> {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return apiFetch<Paginated<PosTable>>(`/v1/tables${qs ? `?${qs}` : ''}`);
+}
+
+/** Move an open order to another table (dine-in). */
+export function moveOrderTable(
+  orderId: string,
+  tableId: string,
+): Promise<{ id: string; tableId: string; tableName: string }> {
+  return apiFetch(`/v1/orders/${orderId}/move-table`, {
+    method: 'POST',
+    body: { tableId },
+  });
+}
+
+/** Park an unpaid order (Bill Parkir) — moves it to status "held". */
+export function holdOrder(orderId: string): Promise<{ id: string; status: string }> {
+  return apiFetch(`/v1/orders/${orderId}/hold`, { method: 'POST' });
+}
+
+/** Resume a parked order — moves it back to status "confirmed". */
+export function unholdOrder(orderId: string): Promise<{ id: string; status: string }> {
+  return apiFetch(`/v1/orders/${orderId}/unhold`, { method: 'POST' });
+}
+
+/** Replace every item of an unpaid order (Bill Parkir edit before payment). */
+export function replaceOrderItems(
+  orderId: string,
+  input: { items: CreateOrderLine[]; notes?: string },
+): Promise<unknown> {
+  return apiFetch(`/v1/orders/${orderId}/items/replace`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+/** Void a single item of an unpaid order (soft-void, keeps an audit note). */
+export function voidOrderItem(
+  orderId: string,
+  itemId: string,
+  reason: string,
+): Promise<{ itemId: string; status: string; reason: string }> {
+  return apiFetch(`/v1/orders/${orderId}/items/${itemId}/void`, {
+    method: 'POST',
+    body: { reason },
+  });
+}
+
+/** Void an unpaid order with a reason. */
+export function voidOrder(
+  orderId: string,
+  reason: string,
+): Promise<{ id: string; status: string; reason: string }> {
+  return apiFetch(`/v1/orders/${orderId}/void`, {
+    method: 'POST',
+    body: { reason },
+  });
+}
+
+/** Totals recomputed server-side after a discount/voucher change. */
+export type OrderAdjustmentResult = {
+  id: string;
+  discountAmount: number;
+  taxAmount: number;
+  serviceCharge: number;
+  total: number;
+};
+
+/** Apply a voucher code to an unpaid order (server validates + recomputes). */
+export function applyVoucherToOrder(
+  orderId: string,
+  code: string,
+): Promise<OrderAdjustmentResult & { code: string; voucherId: string }> {
+  return apiFetch(`/v1/orders/${orderId}/voucher`, {
+    method: 'POST',
+    body: { code },
+  });
+}
+
+/** Remove an applied voucher, restoring the order's original totals. */
+export function removeVoucherFromOrder(
+  orderId: string,
+): Promise<OrderAdjustmentResult> {
+  return apiFetch(`/v1/orders/${orderId}/voucher`, { method: 'DELETE' });
+}
+
+/** Apply a manual discount to an unpaid order (server recomputes totals). */
+export function setOrderDiscount(
+  orderId: string,
+  amount: number,
+  name?: string,
+): Promise<OrderAdjustmentResult> {
+  return apiFetch(`/v1/orders/${orderId}/discount`, {
+    method: 'POST',
+    body: { amount, name },
+  });
 }
 
 /** Settle a `credit` (piutang) order — marks it paid and completes it. */
@@ -953,10 +1157,22 @@ export function updateOutletProfile(
     postalCode?: string | null;
     phone?: string | null;
     picName?: string | null;
+    operatingHours?: Record<string, unknown> | null;
     timezone?: string;
   },
 ): Promise<OutletDetail> {
   return apiFetch<OutletDetail>(`/v1/outlets/${outletId}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+/** Set the outlet's daily revenue goal and/or food-cost target (0 clears). */
+export function setOutletTargets(
+  outletId: string,
+  input: { dailyRevenue?: number; foodCostPct?: number },
+): Promise<{ outletId: string; settings: OutletSettings }> {
+  return apiFetch(`/v1/outlets/${outletId}/targets`, {
     method: 'PATCH',
     body: input,
   });
@@ -974,12 +1190,34 @@ export function updateOutletLocation(
 
 export function updateOutletSettings(
   outletId: string,
-  patch: Partial<OutletSettings>,
+  patch: Record<string, unknown>,
 ): Promise<{ outletId: string; settings: OutletSettings }> {
   return apiFetch(`/v1/outlets/${outletId}/settings`, {
     method: 'PATCH',
     body: patch,
   });
+}
+
+export type TenantBranding = {
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  tagline?: string | null;
+  customDomain?: string | null;
+};
+
+/** Storefront branding of the current tenant (owner/manager scope). */
+export function getTenantBranding(): Promise<{
+  id: string;
+  name: string;
+  branding: TenantBranding;
+}> {
+  return apiFetch('/v1/tenant/branding');
+}
+
+export function updateTenantBranding(
+  input: TenantBranding,
+): Promise<{ id: string; branding: TenantBranding }> {
+  return apiFetch('/v1/tenant/branding', { method: 'PATCH', body: input });
 }
 
 // --- Printer --------------------------------------------------------------
@@ -1032,6 +1270,11 @@ export function testPrinter(id: string): Promise<{
   printer: Pick<Printer, 'id' | 'name' | 'connection' | 'address' | 'paperWidth'>;
 }> {
   return apiFetch(`/v1/printers/${id}/test`, { method: 'POST' });
+}
+
+/** Server-generated receipt JSON for an order (FE renders/prints it). */
+export function generateReceipt(orderId: string): Promise<ReceiptData> {
+  return apiFetch<ReceiptData>(`/v1/printers/receipt/${orderId}`);
 }
 
 // --- Audit log ------------------------------------------------------------
@@ -1122,7 +1365,14 @@ export function topProducts(
   dateTo: string,
   top = 10,
 ): Promise<TopProduct[]> {
-  type Raw = { productId?: string; productName?: string; soldQty?: number; revenue?: number };
+  type Raw = {
+    productId?: string;
+    productName?: string;
+    soldQty?: number;
+    revenue?: number;
+    imageUrl?: string | null;
+    categoryName?: string | null;
+  };
   return apiFetch<Raw[]>(
     `/v1/reports/top-products?dateFrom=${dateFrom}&dateTo=${dateTo}&top=${top}`,
   ).then((rows) =>
@@ -1131,6 +1381,8 @@ export function topProducts(
       name: row.productName,
       qty: row.soldQty ?? 0,
       revenue: row.revenue ?? 0,
+      imageUrl: row.imageUrl ?? null,
+      categoryName: row.categoryName ?? null,
     })),
   );
 }
@@ -1351,6 +1603,11 @@ export type EmployeeInput = {
   phone?: string;
   role: string;
   pin: string;
+  jobTitle?: string;
+  payType?: PayType;
+  baseSalary?: number;
+  shiftRate?: number;
+  commissionRate?: number;
 };
 
 export function createEmployee(input: EmployeeInput): Promise<Employee> {
@@ -1366,6 +1623,11 @@ export type EmployeeUpdate = {
   role?: string;
   pin?: string;
   isActive?: boolean;
+  jobTitle?: string | null;
+  payType?: PayType;
+  baseSalary?: number | null;
+  shiftRate?: number | null;
+  commissionRate?: number | null;
 };
 
 export function updateEmployee(
@@ -1528,6 +1790,45 @@ export function clockOut(employeeId: string): Promise<ClockOutResult> {
     method: 'POST',
     body: { employeeId },
   });
+}
+
+/** Upload a selfie (or any file) and get back its public URL. */
+export function uploadFile(file: File): Promise<{ publicUrl: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  return apiFetch<{ publicUrl: string }>('/v1/storage/local', {
+    method: 'POST',
+    formData: form,
+  });
+}
+
+/** Self clock-in — identity is taken from the session on the server. */
+export function clockInMe(input: {
+  gpsLat?: number;
+  gpsLng?: number;
+  photoUrl?: string;
+}): Promise<ClockInResult> {
+  return apiFetch<ClockInResult>('/v1/attendances/me/clock-in', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function clockOutMe(): Promise<ClockOutResult> {
+  return apiFetch<ClockOutResult>('/v1/attendances/me/clock-out', {
+    method: 'POST',
+  });
+}
+
+export function listMyAttendances(params?: {
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<Attendance[]> {
+  const query = new URLSearchParams();
+  if (params?.dateFrom) query.set('dateFrom', params.dateFrom);
+  if (params?.dateTo) query.set('dateTo', params.dateTo);
+  const qs = query.toString();
+  return apiFetch<Attendance[]>(`/v1/attendances/me${qs ? `?${qs}` : ''}`);
 }
 
 // --- CRM & Voucher --------------------------------------------------------

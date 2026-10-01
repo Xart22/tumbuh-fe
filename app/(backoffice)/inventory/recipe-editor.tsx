@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
+import { DropdownSearch } from '@/components/ui/dropdown-search';
 import { getProductRecipe, replaceProductRecipe } from '@/lib/api';
 import { formatIDR, formatQty } from '@/lib/format';
 import type { RawMaterial } from '@/lib/types';
@@ -68,6 +69,12 @@ function RecipeForm({
   const byId = new Map(materials.map((material) => [material.id, material]));
   const usedIds = new Set(items.map((item) => item.rawMaterialId));
   const available = materials.filter((material) => !usedIds.has(material.id));
+  const materialOptions = materials.map((m) => ({
+    value: m.id,
+    label: m.name,
+    badge: m.sku ?? undefined,
+    subLabel: `${formatIDR(m.costPerUnit)} / ${m.stockUnitCode ?? m.unit}`,
+  }));
 
   const hpp = items.reduce((sum, item) => {
     const material = byId.get(item.rawMaterialId);
@@ -150,29 +157,23 @@ function RecipeForm({
                     className="border-t border-lp-surface-container"
                   >
                     <td className="py-2 pr-2">
-                      <select
+                      <DropdownSearch
+                        size="sm"
                         value={item.rawMaterialId}
                         aria-label={`Bahan baris ${index + 1}`}
-                        onChange={(event) =>
+                        onChange={(val) =>
                           setItems((state) =>
                             state.map((row, i) =>
                               i === index
-                                ? { ...row, rawMaterialId: event.target.value }
+                                ? { ...row, rawMaterialId: val }
                                 : row,
                             ),
                           )
                         }
-                        className="w-full rounded-lg border border-lp-outline-variant bg-white px-2 py-1.5 text-sm text-lp-on-surface outline-none focus:border-lp-primary"
-                      >
-                        {material && (
-                          <option value={material.id}>{material.name}</option>
-                        )}
-                        {available.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.name}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Pilih bahan…"
+                        searchPlaceholder="Cari bahan baku / SKU…"
+                        options={materialOptions}
+                      />
                     </td>
                     <td className="py-2 pr-2 text-right">
                       <input

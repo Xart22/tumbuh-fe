@@ -7,6 +7,7 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Icon } from '@/components/icon';
 import { createUnit } from '@/lib/api';
+import { formatIDR } from '@/lib/format';
 import {
   UNIT_FAMILIES,
   UNIT_FAMILY_LABELS,
@@ -455,7 +456,7 @@ export function MaterialFormModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="m-cost" className={labelCls}>
-              Harga / satuan stok
+              Harga per {stockUnit?.name ?? 'satuan stok'}
             </label>
             <input
               id="m-cost"
@@ -467,6 +468,17 @@ export function MaterialFormModal({
               className={inputCls}
             />
             <FieldError message={errors.costPerUnit?.message} />
+            <p className="mt-1 text-[11px] text-lp-tertiary">
+              Harga untuk 1 {stockUnit?.name ?? 'satuan stok'}, bukan harga 1
+              kemasan.
+            </p>
+            {!purchaseUnitId && (costPerUnit ?? 0) > 0 && (
+              <p className="mt-1 rounded-lg bg-lp-secondary-container/20 px-2 py-1 text-[11px] text-lp-on-secondary-container">
+                Kalau {formatIDR(costPerUnit ?? 0)} itu harga 1 kemasan, pilih
+                Satuan Beli + Isi Kemasan di atas agar otomatis dikonversi ke
+                harga per {stockUnit?.name ?? 'satuan stok'}.
+              </p>
+            )}
           </div>
           <div>
             <label htmlFor="m-min" className={labelCls}>

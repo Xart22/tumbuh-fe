@@ -99,7 +99,9 @@ export function LoginForm() {
         values.outletId,
         outlets.find((o) => o.id === values.outletId)?.name ?? '',
       );
-      router.replace('/pos');
+      router.replace(
+        useAuthStore.getState().user?.role === 'staff' ? '/absen' : '/pos',
+      );
     } catch (err) {
       setError('root.server', {
         message: err instanceof Error ? err.message : 'Login gagal.',
