@@ -21,10 +21,33 @@ const DEFAULT_REQ: AttendanceSettings = {
   requirePhoto: false,
 };
 
-function dateISO(offsetDays = 0): string {
+/** Local calendar date as `YYYY-MM-DD` (never UTC — avoids the WIB off-by-one). */
+function localDateISO(offsetDays = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().slice(0, 10);
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+/** Local calendar date of an ISO timestamp, for comparing against today. */
+function localDateOf(iso: string): string {
+  const d = new Date(iso);
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * Today's open clock-in only. A forgotten clock-out from a previous day must
+ * not masquerade as "still working" and hide the clock-in button.
+ */
+function todayOpenAttendance(rows: Attendance[]): Attendance | null {
+  const today = localDateISO(0);
+  return (
+    rows.find((a) => a.clockOut === null && localDateOf(a.clockIn) === today) ??
+    null
+  );
 }
 
 function fmtTime(iso: string | null): string {
@@ -78,11 +101,11 @@ export default function AbsenPage() {
 
   const load = useCallback(async () => {
     const rows = await listMyAttendances({
-      dateFrom: dateISO(-30),
-      dateTo: dateISO(0),
+      dateFrom: localDateISO(-30),
+      dateTo: localDateISO(0),
     });
     setHistory(rows);
-    setToday(rows.find((a) => a.clockOut === null) ?? null);
+    setToday(todayOpenAttendance(rows));
   }, []);
 
   useEffect(() => {
@@ -93,13 +116,16 @@ export default function AbsenPage() {
             .then((o) => o.settings.attendance)
             .catch(() => null)
         : Promise.resolve(null),
-      listMyAttendances({ dateFrom: dateISO(-30), dateTo: dateISO(0) }),
+      listMyAttendances({
+        dateFrom: localDateISO(-30),
+        dateTo: localDateISO(0),
+      }),
     ])
       .then(([attendance, rows]) => {
         if (cancelled) return;
         if (attendance) setReq(attendance);
         setHistory(rows);
-        setToday(rows.find((a) => a.clockOut === null) ?? null);
+        setToday(todayOpenAttendance(rows));
       })
       .catch((err) => {
         if (!cancelled) {
@@ -164,7 +190,9 @@ export default function AbsenPage() {
     try {
       gps = await getPosition();
     } catch (err) {
-      if (req.requireGps) {
+      // A configured geofence rejects a missing position even when the
+      // "GPS wajib" toggle is off, so treat radius > 0 as required too.
+      if (req.requireGps || req.maxRadiusM > 0) {
         setError(err instanceof Error ? err.message : 'Lokasi wajib diaktifkan.');
         return;
       }
@@ -282,7 +310,9 @@ export default function AbsenPage() {
             <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-lp-on-surface-variant">
               <span className="inline-flex items-center gap-1 rounded-full bg-lp-surface-low px-2 py-0.5 font-medium">
                 <Icon name="my_location" className="text-sm" />
-                {req.requireGps ? 'GPS wajib' : 'GPS opsional'}
+                {req.requireGps || req.maxRadiusM > 0
+                  ? 'GPS wajib'
+                  : 'GPS opsional'}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-lp-surface-low px-2 py-0.5 font-medium">
                 <Icon name="photo_camera" className="text-sm" />
