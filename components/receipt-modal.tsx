@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatIDR } from '@/lib/format';
-import { generateReceipt, listPrinters } from '@/lib/api';
+import { confirmManualPayment, generateReceipt, listPrinters } from '@/lib/api';
 import type {
   CartLine,
   CreatedOrder,
@@ -38,6 +38,9 @@ export function ReceiptModal({
 
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [paperWidth, setPaperWidth] = useState(58);
+  const [confirmed, setConfirmed] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +100,24 @@ export function ReceiptModal({
       changeAmount: payment.changeAmount,
       paidAt: null,
     }));
+
+  const qrString = payment.qris?.qrString ?? '';
+  const qrImageSrc = /^(https?:|data:image)/.test(qrString) ? qrString : '';
+
+  async function handleConfirmPayment() {
+    setConfirming(true);
+    setConfirmError(null);
+    try {
+      await confirmManualPayment(order.id);
+      setConfirmed(true);
+    } catch (err) {
+      setConfirmError(
+        err instanceof Error ? err.message : 'Gagal mengonfirmasi pembayaran.',
+      );
+    } finally {
+      setConfirming(false);
+    }
+  }
 
   function handlePrint() {
     if (typeof window !== 'undefined') window.print();
@@ -171,8 +192,42 @@ export function ReceiptModal({
           </div>
 
           {awaiting && (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2 text-center text-[11px] text-amber-800 font-sans print:hidden">
-              Menunggu konfirmasi pembayaran {payment.qris?.provider ?? 'gateway'}…
+            <div className="mt-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 font-sans print:hidden">
+              <p className="text-center text-[11px] font-semibold text-amber-800">
+                {confirmed
+                  ? 'Pembayaran terkonfirmasi.'
+                  : `Menunggu pembayaran ${payment.qris?.provider ?? 'gateway'}…`}
+              </p>
+              {!confirmed && qrString && (
+                qrImageSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- QR image is an arbitrary/remote gateway URL
+                  <img
+                    src={qrImageSrc}
+                    alt="QRIS"
+                    className="mx-auto h-44 w-44 rounded-lg border border-slate-200 bg-white object-contain"
+                  />
+                ) : (
+                  <p className="break-all rounded-lg border border-slate-200 bg-white p-2 text-center font-lp-mono text-[11px] text-slate-700">
+                    {qrString}
+                  </p>
+                )
+              )}
+              {!confirmed && (
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmPayment()}
+                  disabled={confirming}
+                  className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-lp-primary text-xs font-bold text-white shadow-sm transition hover:bg-lp-primary-container disabled:opacity-50"
+                >
+                  <Icon name="verified" className="text-base" />
+                  <span>{confirming ? 'Mengonfirmasi…' : 'Konfirmasi Pembayaran'}</span>
+                </button>
+              )}
+              {confirmError && (
+                <p className="text-center text-[11px] font-medium text-red-600">
+                  {confirmError}
+                </p>
+              )}
             </div>
           )}
 

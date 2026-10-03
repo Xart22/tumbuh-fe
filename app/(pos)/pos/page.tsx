@@ -261,6 +261,8 @@ export default function PosPage() {
     setStage('browse');
     // Menu prices and sold-out flags may have changed while selling.
     void refreshMenu();
+    // A paid parked order leaves the Bill Parkir list.
+    void refreshParked();
   }
 
   function handleParkCurrentCart() {
@@ -270,7 +272,12 @@ export default function PosPage() {
 
   async function confirmPark(label: string) {
     setSubmitting(true);
-    const parked = await parkOrder({ orderType, label, lines });
+    const parked = await parkOrder({
+      orderType,
+      label,
+      lines,
+      customerId: customer?.id,
+    });
     setSubmitting(false);
     if (parked) {
       clearCart();

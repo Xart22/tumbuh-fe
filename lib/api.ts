@@ -806,6 +806,16 @@ export function createPayment(input: PayInput): Promise<PaymentResult> {
   });
 }
 
+/**
+ * Settle a pending QRIS/e-wallet charge manually (static QR / delayed webhook).
+ * The order is `awaiting_payment` until the gateway webhook or this call.
+ */
+export function confirmManualPayment(
+  orderId: string,
+): Promise<{ orderId: string; paymentStatus: string; status: string }> {
+  return apiFetch(`/v1/payments/orders/${orderId}/confirm`, { method: 'POST' });
+}
+
 // --- Shifts ---------------------------------------------------------------
 
 /** Currently clocked-in staff. Empty array = no terminal active. */

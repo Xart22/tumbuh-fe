@@ -6,7 +6,6 @@ import {
   getOrder,
   listOrders,
   replaceOrderItems,
-  unholdOrder,
   voidOrder,
   voidOrderItem,
   type CreateOrderLine,
@@ -143,8 +142,9 @@ interface HoldState {
     orderType: OrderType;
     label?: string;
     lines: CartLine[];
+    customerId?: string;
   }) => Promise<ParkedOrder | null>;
-  /** Unhold + fetch full detail for editing/payment on the same order. */
+  /** Fetch full detail for editing/payment on the same (still held) order. */
   resume: (id: string) => Promise<OrderDetail | null>;
   /** Replace every item of a parked order (edit before payment). */
   replaceItems: (id: string, lines: CartLine[]) => Promise<OrderDetail | null>;
@@ -184,13 +184,14 @@ export const useHoldStore = create<HoldState>((set, get) => ({
     }
   },
 
-  park: async ({ orderType, label, lines }) => {
+  park: async ({ orderType, label, lines, customerId }) => {
     set({ error: null });
     try {
       const created = await createOrder({
         orderType,
         items: toOrderLines(lines),
         park: true,
+        customerId,
         notes: label?.trim() || undefined,
       });
       await get().refresh();
@@ -208,7 +209,9 @@ export const useHoldStore = create<HoldState>((set, get) => ({
 
   resume: async (id) => {
     try {
-      await unholdOrder(id);
+      // Keep the order held until the cashier checks out (replaceItems moves it
+      // to confirmed) or pays it. Unholding here would drop it off the Bill
+      // Parkir list with no way back if the cashier then abandons the sale.
       const detail = await getOrder(id);
       await get().refresh();
       return detail;
