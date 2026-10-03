@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { listOutlets } from '@/lib/api';
+import { listMyOutlets } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 
 /**
@@ -17,8 +17,8 @@ export function OutletBootstrap({ children }: { children: React.ReactNode }) {
 
   const needsOutlet = Boolean(user) && !outletId;
   const { data, isError } = useQuery({
-    queryKey: ['outlets'],
-    queryFn: listOutlets,
+    queryKey: ['outlets', 'me'],
+    queryFn: listMyOutlets,
     enabled: needsOutlet,
   });
 

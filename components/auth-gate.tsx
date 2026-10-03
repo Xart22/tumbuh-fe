@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { routeForRole } from '@/lib/login-routing';
 import { useAuthStore } from '@/stores/auth-store';
 
 function Splash({ label }: { label: string }) {
@@ -60,10 +61,10 @@ export function AuthGate({
     if (!hydrated) return;
     if (!allowed) router.replace(loginPath);
     else if (!requireAuth && session) {
-      // Kasir sessions belong in the POS; owners land on the dashboard.
-      router.replace(outletOk ? '/pos' : '/dashboard');
+      // Already signed in — send each role to its home.
+      router.replace(routeForRole(user?.role));
     }
-  }, [hydrated, allowed, session, outletOk, requireAuth, loginPath, router]);
+  }, [hydrated, allowed, session, user, requireAuth, loginPath, router]);
 
   if (!hydrated) return <Splash label="Memuat…" />;
   if (!allowed) {

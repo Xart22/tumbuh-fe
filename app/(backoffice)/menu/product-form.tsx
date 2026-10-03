@@ -79,6 +79,7 @@ export function ProductFormPanel({
   onClose,
   onSubmit,
   onOpenStudio,
+  canManageOutletOverrides = false,
 }: {
   product: Product | null;
   categories: Category[];
@@ -87,6 +88,8 @@ export function ProductFormPanel({
   onClose: () => void;
   onSubmit: (values: ProductFormValues) => void;
   onOpenStudio?: () => void;
+  /** Per-outlet price overrides are owner/manager only. */
+  canManageOutletOverrides?: boolean;
 }) {
   const editing = product !== null;
 
@@ -302,17 +305,19 @@ export function ProductFormPanel({
         )}
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-lp-surface-container pt-3">
-        <SectionHeading icon="storefront" title="Harga & Ketersediaan per Outlet" />
-        {editing ? (
-          <OutletOverrideEditor
-            productId={product.id}
-            basePrice={product.basePrice}
-          />
-        ) : (
-          <NeedsSaved label="override per outlet" />
-        )}
-      </div>
+      {canManageOutletOverrides && (
+        <div className="flex flex-col gap-2 border-t border-lp-surface-container pt-3">
+          <SectionHeading icon="storefront" title="Harga & Ketersediaan per Outlet" />
+          {editing ? (
+            <OutletOverrideEditor
+              productId={product.id}
+              basePrice={product.basePrice}
+            />
+          ) : (
+            <NeedsSaved label="override per outlet" />
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 border-t border-lp-surface-container pt-3">
         <div className="flex items-center justify-between gap-3 rounded-xl bg-lp-primary/10 p-3">

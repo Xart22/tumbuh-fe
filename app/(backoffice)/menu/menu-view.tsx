@@ -33,6 +33,10 @@ export function MenuView() {
   const canWrite = Boolean(
     role && ['owner', 'manager', 'supervisor'].includes(role),
   );
+  // Bundling, product deletion, and per-outlet price overrides are owner/manager only.
+  const canManageBundles = Boolean(role && ['owner', 'manager'].includes(role));
+  const canDelete = canManageBundles;
+  const canManageOutletOverrides = canManageBundles;
   const queryClient = useQueryClient();
   const searchRef = useRef<HTMLInputElement>(null);
   const hasInitializedRef = useRef(false);
@@ -219,17 +223,19 @@ export function MenuView() {
               <Icon name="drag_indicator" className="text-[18px] text-lp-tertiary" />
               <span>Atur Urutan Kategori (Drag &amp; Drop)</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setManagingBundles(true)}
-              className="flex h-11 items-center gap-2 rounded-lg bg-lp-surface-container-lowest px-4 text-sm font-semibold text-lp-on-surface shadow-sm transition hover:bg-lp-surface-low"
-            >
-              <Icon
-                name="inventory_2"
-                className="text-[18px] text-lp-tertiary"
-              />
-              <span>Bundling Paket</span>
-            </button>
+            {canManageBundles && (
+              <button
+                type="button"
+                onClick={() => setManagingBundles(true)}
+                className="flex h-11 items-center gap-2 rounded-lg bg-lp-surface-container-lowest px-4 text-sm font-semibold text-lp-on-surface shadow-sm transition hover:bg-lp-surface-low"
+              >
+                <Icon
+                  name="inventory_2"
+                  className="text-[18px] text-lp-tertiary"
+                />
+                <span>Bundling Paket</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -552,18 +558,20 @@ export function MenuView() {
                                     className="text-[16px]"
                                   />
                                 </button>
-                                <button
-                                  type="button"
-                                  aria-label={`Hapus ${product.name}`}
-                                  disabled={deleteMutation.isPending}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setProductToDelete(product);
-                                  }}
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-lp-error transition hover:bg-lp-error-container/40 disabled:opacity-50"
-                                >
-                                  <Icon name="delete" className="text-[16px]" />
-                                </button>
+                                {canDelete && (
+                                  <button
+                                    type="button"
+                                    aria-label={`Hapus ${product.name}`}
+                                    disabled={deleteMutation.isPending}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setProductToDelete(product);
+                                    }}
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-lp-error transition hover:bg-lp-error-container/40 disabled:opacity-50"
+                                  >
+                                    <Icon name="delete" className="text-[16px]" />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           )}
@@ -683,6 +691,7 @@ export function MenuView() {
               }}
               onSubmit={(values) => saveMutation.mutate(values)}
               onOpenStudio={() => setStudioProduct(selected.product)}
+              canManageOutletOverrides={canManageOutletOverrides}
             />
           ) : (
             <div className="flex flex-col items-center gap-2 rounded-xl bg-lp-surface-container-lowest p-8 text-center shadow-sm">

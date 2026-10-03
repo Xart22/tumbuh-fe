@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -7,7 +8,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
 import { LOGO_URL } from '@/components/landing/assets';
 import { Button } from '@/components/ui/button';
-import { activeShifts, listOutlets } from '@/lib/api';
+import { activeShifts, listMyOutlets } from '@/lib/api';
+import { routeForRole } from '@/lib/login-routing';
 import { useAuthStore } from '@/stores/auth-store';
 import { NAV, SOON } from './backoffice-nav';
 import { HeaderSearch } from './header-search';
@@ -32,8 +34,16 @@ function roleLabel(role?: string | null): string {
 function roleSubtitle(role?: string | null): string {
   if (role === 'owner') return 'Super Admin';
   if (role === 'manager') return 'Admin Outlet';
+  if (role === 'supervisor') return 'Supervisor Operasional';
   return roleLabel(role);
 }
+
+/** Backoffice pages each role may open. Absent role = no backoffice access. */
+const ALLOWED_PATHS: Record<string, readonly string[]> = {
+  owner: NAV.map((item) => item.href),
+  manager: NAV.map((item) => item.href),
+  supervisor: ['/menu', '/inventory', '/pos'],
+};
 
 export function OwnerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -51,9 +61,25 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
     queryFn: activeShifts,
   });
   const { data: outlets } = useQuery({
-    queryKey: ['outlets'],
-    queryFn: listOutlets,
+    queryKey: ['outlets', 'me'],
+    queryFn: listMyOutlets,
   });
+
+  const nav = useMemo(
+    () =>
+      NAV.filter(
+        (item) => !item.roles || (user && item.roles.includes(user.role)),
+      ),
+    [user],
+  );
+
+  // Role-scoped route guard: keep every role inside its allowed backoffice pages.
+  useEffect(() => {
+    if (!user) return;
+    const allowed = ALLOWED_PATHS[user.role];
+    if (allowed?.includes(pathname)) return;
+    router.replace(allowed?.[0] ?? routeForRole(user.role));
+  }, [user, pathname, router]);
   const activeCount = shifts?.length ?? null;
   const singleShift = activeCount === 1 ? (shifts?.[0]?.terminalName ?? null) : null;
   const shiftPillText =
@@ -116,7 +142,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <nav className="mt-2 flex flex-col gap-1 px-4" aria-label="Navigasi backoffice">
-            {NAV.map((item) => {
+            {nav.map((item) => {
               const active = pathname === item.href;
               return (
                 <Link

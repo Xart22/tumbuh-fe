@@ -7,7 +7,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Alert, Button, Card, Field, Input, Spinner } from '@/components/pos-ui';
-import { acceptEmployeeInvite } from '@/lib/api';
+import { acceptEmployeeInvite, listMyOutlets } from '@/lib/api';
+import { routeForRole } from '@/lib/login-routing';
 import type { Outlet } from '@/lib/types';
 import { fetchPublicStore, useAuthStore } from '@/stores/auth-store';
 
@@ -80,8 +81,10 @@ export function AcceptInviteForm() {
       setLoadingOutlets(true);
       const store = await fetchPublicStore(slug);
       setBusinessName(store.name);
-      setOutlets(store.outlets);
-      setPicked(store.outlets[0]?.id ?? '');
+      const mine = await listMyOutlets();
+      const available = mine.length ? mine : store.outlets;
+      setOutlets(available);
+      setPicked(available[0]?.id ?? '');
     } catch (err) {
       setError('root.server', {
         message: err instanceof Error ? err.message : 'Gagal menerima undangan.',
@@ -94,9 +97,7 @@ export function AcceptInviteForm() {
   function finish() {
     if (!picked) return;
     selectOutlet(picked, outlets?.find((o) => o.id === picked)?.name ?? '');
-    router.replace(
-      useAuthStore.getState().user?.role === 'staff' ? '/absen' : '/pos',
-    );
+    router.replace(routeForRole(useAuthStore.getState().user?.role));
   }
 
   // Step 2: session adopted — pick an outlet to start working.

@@ -25,11 +25,14 @@ type AuthState = {
   outletName: string | null;
   user: AuthUser | null;
   tenantSlug: string;
+  /** PIN login for an already-resolved outlet (in-POS user switch). */
   login: (outletId: string, pin: string) => Promise<void>;
-  /** Workspace owner/manager login — session without an outlet scope. */
+  /**
+   * Password login for any role. The BE resolves the workspace from the email;
+   * callers pass `tenantSlug` only to disambiguate a multi-workspace account.
+   * Session starts without an outlet scope — pick one afterwards.
+   */
   loginOwner: (email: string, password: string, tenantSlug?: string) => Promise<void>;
-  /** Employee email login — password session bound to an outlet for POS. */
-  loginEmail: (outletId: string, email: string, password: string) => Promise<void>;
   /** Adopt tokens issued elsewhere (e.g. invite accept) — no outlet yet. */
   adoptSession: (result: OwnerLoginResult) => void;
   logout: () => void;
@@ -41,9 +44,6 @@ type AuthState = {
   hasSession: () => boolean;
 };
 
-/** Tenant default matches the seeded BE tenant; override on the login screen. */
-const DEFAULT_SLUG = process.env.NEXT_PUBLIC_TENANT_SLUG ?? 'kopikita';
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>()(
       outletId: null,
       outletName: null,
       user: null,
-      tenantSlug: DEFAULT_SLUG,
+      tenantSlug: '',
 
       async login(outletId, pin) {
         const result = await apiFetch<LoginKasirResult>('/v1/auth/login-kasir', {
@@ -91,31 +91,6 @@ export const useAuthStore = create<AuthState>()(
           },
         });
         setAuthContext(result.accessToken, null);
-      },
-
-      async loginEmail(outletId, email, password) {
-        const slug = get().tenantSlug.trim().toLowerCase();
-        const result = await loginOwner({
-          email,
-          password,
-          tenantSlug: slug || undefined,
-        });
-        if (!('accessToken' in result)) {
-          throw new WorkspaceChoiceRequired(result.workspaces);
-        }
-        const outletName =
-          get().outletId === outletId ? get().outletName : null;
-        set({
-          token: result.accessToken,
-          outletId,
-          outletName,
-          user: {
-            id: result.user.id,
-            name: result.user.name,
-            role: result.user.role as Role,
-          },
-        });
-        setAuthContext(result.accessToken, outletId);
       },
 
       adoptSession(result) {

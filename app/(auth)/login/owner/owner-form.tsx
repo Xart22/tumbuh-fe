@@ -9,7 +9,9 @@ import { z } from 'zod';
 import { Icon } from '@/components/icon';
 import { VerifyEmailForm } from '@/components/verify-email-form';
 import { ApiError } from '@/lib/api-client';
-import type { WorkspaceOption } from '@/lib/api';
+import { listMyOutlets, type WorkspaceOption } from '@/lib/api';
+import { routeForRole, roleNeedsOutlet } from '@/lib/login-routing';
+import type { Outlet } from '@/lib/types';
 import { useAuthStore, WorkspaceChoiceRequired } from '@/stores/auth-store';
 
 export const ownerLoginSchema = z.object({
@@ -38,10 +40,13 @@ function FieldError({ message }: { message?: string }) {
 export function OwnerLoginForm() {
   const router = useRouter();
   const loginOwner = useAuthStore((s) => s.loginOwner);
+  const selectOutlet = useAuthStore((s) => s.selectOutlet);
   const [showPassword, setShowPassword] = useState(false);
   const [options, setOptions] = useState<WorkspaceOption[] | null>(null);
   const [picked, setPicked] = useState('');
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [outlets, setOutlets] = useState<Outlet[] | null>(null);
+  const [pickedOutlet, setPickedOutlet] = useState('');
 
   const {
     register,
@@ -57,16 +62,26 @@ export function OwnerLoginForm() {
     try {
       await loginOwner(values.email.trim(), values.password, picked || undefined);
       const role = useAuthStore.getState().user?.role;
-      if (role !== 'owner' && role !== 'manager') {
-        // Akun karyawan: sesi ini milik POS, bukan backoffice.
+      if (!roleNeedsOutlet(role)) {
+        router.replace(routeForRole(role));
+        return;
+      }
+      const mine = await listMyOutlets();
+      if (mine.length === 0) {
         useAuthStore.getState().logout();
         setError('root.server', {
           message:
-            'Akun ini milik karyawan. Masuk lewat halaman Kasir (/kasir) dengan PIN atau Email.',
+            'Akun ini belum ditugaskan ke outlet mana pun. Hubungi owner untuk penugasan outlet.',
         });
         return;
       }
-      router.replace('/dashboard');
+      if (mine.length === 1) {
+        selectOutlet(mine[0].id, mine[0].name);
+        router.replace(routeForRole(role));
+        return;
+      }
+      setOutlets(mine);
+      setPickedOutlet(mine[0].id);
     } catch (err) {
       if (err instanceof WorkspaceChoiceRequired) {
         setOptions(err.workspaces);
@@ -82,6 +97,52 @@ export function OwnerLoginForm() {
       });
     }
   });
+
+  if (outlets) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-slate-600">
+          Akun ini terdaftar di beberapa outlet — pilih satu untuk mulai bekerja.
+        </p>
+        <div className="flex flex-col gap-2" role="radiogroup" aria-label="Pilih outlet">
+          {outlets.map((outlet) => (
+            <label
+              key={outlet.id}
+              className={`flex cursor-pointer items-center gap-2.5 rounded-xl border bg-white p-2.5 transition ${
+                pickedOutlet === outlet.id
+                  ? 'border-emerald-600 ring-1 ring-emerald-600/30'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <input
+                type="radio"
+                name="outlet-pick"
+                value={outlet.id}
+                checked={pickedOutlet === outlet.id}
+                onChange={() => setPickedOutlet(outlet.id)}
+                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span className="text-xs font-bold text-slate-900">{outlet.name}</span>
+            </label>
+          ))}
+        </div>
+        <button
+          type="button"
+          disabled={!pickedOutlet}
+          onClick={() => {
+            const outlet = outlets.find((o) => o.id === pickedOutlet);
+            if (!outlet) return;
+            selectOutlet(outlet.id, outlet.name);
+            router.replace(routeForRole(useAuthStore.getState().user?.role));
+          }}
+          className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-md shadow-emerald-600/25 transition hover:bg-emerald-700 active:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Mulai Bekerja
+          <Icon name="arrow_forward" className="text-base" />
+        </button>
+      </div>
+    );
+  }
 
   if (pendingEmail) {
     return (

@@ -1134,6 +1134,15 @@ export function listOutlets(): Promise<Outlet[]> {
   return apiFetch<Outlet[]>('/v1/outlets');
 }
 
+/**
+ * Outlets the signed-in account may work in. Owner/manager get every tenant
+ * outlet; staff get only their assigned outlets. Used to scope a session after
+ * login, before any X-Outlet-Id call.
+ */
+export function listMyOutlets(): Promise<Outlet[]> {
+  return apiFetch<Outlet[]>('/v1/outlets/me');
+}
+
 /** Set the outlet's daily revenue goal (0 clears it). */
 export function setOutletDailyTarget(
   outletId: string,

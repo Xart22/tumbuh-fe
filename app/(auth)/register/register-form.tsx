@@ -10,7 +10,6 @@ import { Icon } from '@/components/icon';
 import { VerifyEmailForm } from '@/components/verify-email-form';
 import { plusJakarta } from '@/lib/fonts';
 import { registerMerchant, type RegisterMerchantResult } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth-store';
 import { StepAccount } from './step-account';
 import { StepBusiness } from './step-business';
 import {
@@ -68,7 +67,6 @@ function StepBadge({ done, active, children }: { done?: boolean; active?: boolea
 
 export function RegisterForm() {
   const router = useRouter();
-  const setTenantSlug = useAuthStore((s) => s.setTenantSlug);
 
   const methods = useForm<RegisterValues>({
     mode: 'onTouched',
@@ -151,7 +149,6 @@ export function RegisterForm() {
   });
 
   function goToLogin() {
-    if (result) setTenantSlug(result.slug);
     router.replace('/login');
   }
 
