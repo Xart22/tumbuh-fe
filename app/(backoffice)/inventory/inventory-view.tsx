@@ -11,6 +11,7 @@ import {
   createRawMaterial,
   deleteRawMaterial,
   getProductRecipe,
+  listAllRawMaterials,
   listRawMaterialsPage,
   listUnits,
   listWasteRecords,
@@ -29,7 +30,8 @@ import {
   type MaterialFormValues,
   type StockAdjustValues,
 } from './material-modals';
-import { buildReorderItems, restockPurchaseQty } from './reorder-utils';
+import { buildReorderItems, restockStockQty } from './reorder-utils';
+import { recipeQtyInStockUnit } from './unit-convert';
 import { RecipeEditor } from './recipe-editor';
 import { PurchaseOrderView } from './po-view';
 import { OpnameView } from './opname-view';
@@ -63,11 +65,16 @@ function statusChip(status: RawMaterialStatus): string {
   return 'bg-lp-primary/10 text-lp-primary font-semibold';
 }
 
-function startOfMonth(): string {
+/** Local calendar date as `YYYY-MM-DD` (never UTC — avoids the WIB off-by-one). */
+function todayISO(): string {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .slice(0, 10);
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function startOfMonth(): string {
+  return `${todayISO().slice(0, 7)}-01`;
 }
 
 function getMaterialIcon(name: string = '', category?: string | null): string {
@@ -100,7 +107,7 @@ function exportMaterialsCSV(items: RawMaterial[]) {
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement('a');
   link.setAttribute('href', encodedUri);
-  link.setAttribute('download', `tumbuh_bahan_baku_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.setAttribute('download', `tumbuh_bahan_baku_${todayISO()}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -161,7 +168,7 @@ export function InventoryView() {
   // Full list for the recipe editor (cost per unit per selected row).
   const allMaterialsQ = useQuery({
     queryKey: ['inventory', 'materials', 'all'],
-    queryFn: () => listRawMaterialsPage({ page: 1, limit: 100 }),
+    queryFn: listAllRawMaterials,
   });
   const unitsQ = useQuery({
     queryKey: ['units'],
@@ -187,7 +194,7 @@ export function InventoryView() {
   const materials = materialsQ.data?.items ?? [];
   const total = materialsQ.data?.total ?? 0;
   const totalPages = materialsQ.data?.totalPages ?? 1;
-  const allMaterials = allMaterialsQ.data?.items ?? [];
+  const allMaterials = allMaterialsQ.data ?? [];
   const units = unitsQ.data ?? [];
   const margins = useMemo(() => marginsQ.data ?? [], [marginsQ.data]);
   const marginOptions = margins.map((row) => ({
@@ -219,7 +226,10 @@ export function InventoryView() {
   }, [margins, recipeSearch, recipeFilter]);
 
   const healthyCount = useMemo(
-    () => margins.filter((m) => m.price > 0 && (m.cogs / m.price) * 100 <= 30).length,
+    () =>
+      margins.filter(
+        (m) => m.price > 0 && m.cogs > 0 && (m.cogs / m.price) * 100 <= 30,
+      ).length,
     [margins],
   );
   const warningCount = useMemo(
@@ -312,6 +322,15 @@ export function InventoryView() {
   const shockFactor = 1 + priceShock / 100;
   const bomLines = (recipeQ.data?.items ?? []).map((item) => {
     const material = allMaterials.find((row) => row.id === item.rawMaterialId);
+    // Cost is per stock unit, so convert a recipe stored in another unit first.
+    const stockUnit =
+      item.rawMaterialUnit ?? material?.stockUnitCode ?? item.unit;
+    const qtyInStockUnit = recipeQtyInStockUnit(
+      item.qtyUsed,
+      item.unit,
+      stockUnit,
+      units,
+    );
     // Cost comes from the recipe payload (works past the 100-item page cap);
     // the catalog lookup is only a fallback.
     const unitCost =
@@ -319,10 +338,10 @@ export function InventoryView() {
     return {
       id: item.rawMaterialId,
       name: material?.name ?? item.rawMaterialName ?? 'Bahan',
-      qtyUsed: item.qtyUsed,
-      unit: material?.stockUnitCode ?? item.unit,
+      qtyUsed: qtyInStockUnit,
+      unit: stockUnit,
       unitCost,
-      cost: item.qtyUsed * unitCost,
+      cost: qtyInStockUnit * unitCost,
     };
   });
   const bomCost = bomLines.reduce((sum, line) => sum + line.cost, 0);
@@ -821,7 +840,7 @@ export function InventoryView() {
                                         {
                                           rawMaterialId: material.id,
                                           qtyOrdered: String(
-                                            restockPurchaseQty(material),
+                                            restockStockQty(material),
                                           ),
                                           unitPrice: String(
                                             material.lastUnitPrice ??
@@ -1035,7 +1054,7 @@ export function InventoryView() {
                     {formatIDR(grossProfit)}
                     {bomFoodCostPct !== null && (
                       <span className="ml-1 text-[11px] font-normal text-lp-primary">
-                        ({Math.max(0, 100 - bomFoodCostPct).toFixed(1)}%)
+                        ({(100 - bomFoodCostPct).toFixed(1)}%)
                       </span>
                     )}
                   </span>
@@ -1149,21 +1168,23 @@ export function InventoryView() {
                   disabled={reorderItems.length === 0}
                   onClick={() => {
                     setBulkItems(
-                      reorderItems
-                        .filter((item) => item.purchaseQty)
-                        .map((item) => ({
-                          rawMaterialId: item.rawMaterialId,
-                          qtyOrdered: String(Math.max(1, Math.ceil(item.purchaseQty!.qty))),
-                          unitPrice: String(
+                      reorderItems.map((item) => ({
+                        rawMaterialId: item.rawMaterialId,
+                        // POs are received in stock units, so order the stock-unit
+                        // recommendation — never the purchase-unit count.
+                        qtyOrdered: String(
+                          Math.max(1, Math.ceil(item.recommendedQty)),
+                        ),
+                        unitPrice: String(
+                          allMaterials.find(
+                            (row) => row.id === item.rawMaterialId,
+                          )?.lastUnitPrice ??
                             allMaterials.find(
                               (row) => row.id === item.rawMaterialId,
-                            )?.lastUnitPrice ??
-                              allMaterials.find(
-                                (row) => row.id === item.rawMaterialId,
-                              )?.costPerUnit ??
-                              0,
-                          ),
-                        })),
+                            )?.costPerUnit ??
+                            0,
+                        ),
+                      })),
                     );
                     setTab('purchase');
                   }}
@@ -1326,7 +1347,9 @@ export function InventoryView() {
             <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-2 rounded-xl bg-lp-surface-low px-3.5 py-2 border border-lp-outline-variant/20">
                 <span className="text-lp-tertiary font-medium">Target Food Cost Ideal:</span>
-                <span className="font-lp-mono font-bold text-lp-primary">&lt;32%</span>
+                <span className="font-lp-mono font-bold text-lp-primary">
+                  &lt;{foodCostTarget ?? 32}%
+                </span>
               </div>
             </div>
           </div>
@@ -1536,7 +1559,7 @@ export function InventoryView() {
                           </span>
                           {sellPrice > 0 && (
                             <span className="font-lp-mono text-xs text-lp-primary font-semibold">
-                              ({Math.max(0, 100 - (bomFoodCostPct ?? 0)).toFixed(1)}%)
+                              ({(100 - (bomFoodCostPct ?? 0)).toFixed(1)}%)
                             </span>
                           )}
                         </div>

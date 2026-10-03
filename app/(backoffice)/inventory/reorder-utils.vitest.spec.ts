@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { RawMaterial, StockForecast } from '@/lib/types';
-import { buildReorderItems } from './reorder-utils';
+import {
+  buildReorderItems,
+  restockPurchaseQty,
+  restockStockQty,
+} from './reorder-utils';
 
 const material = (over: Partial<RawMaterial>): RawMaterial => ({
   id: 'm1',
@@ -78,5 +82,15 @@ describe('buildReorderItems', () => {
     expect(item.status).toBe('critical');
     expect(item.daysLeft).toBeNull();
     expect(item.recommendedQty).toBe(30);
+  });
+});
+
+describe('restock quantities', () => {
+  it('restockStockQty is in stock units while restockPurchaseQty is in packs', () => {
+    const m = material({ minStockQty: 15, stockQty: 4.2, packSize: 12 });
+
+    // 2×15 − 4.2 = 25.8 → 26 stock units, or 3 karton (12 each).
+    expect(restockStockQty(m)).toBe(26);
+    expect(restockPurchaseQty(m)).toBe(3);
   });
 });

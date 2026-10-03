@@ -25,6 +25,7 @@ const PO_STATUS: Record<string, string> = {
   draft: 'Draft',
   partial: 'Sebagian',
   received: 'Diterima',
+  distributed: 'Didistribusikan',
   cancelled: 'Dibatalkan',
 };
 
@@ -94,6 +95,14 @@ export function PurchaseOrderView({
     onSuccess: () => {
       setDistributePo(null);
       void invalidateOrders();
+      // Distribution consumes source stock, so refresh the detail (button state)
+      // and the materials list too — otherwise it can be distributed again.
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'materials'] });
+      if (selectedPo) {
+        queryClient.invalidateQueries({
+          queryKey: ['inventory', 'purchase-order', selectedPo],
+        });
+      }
     },
   });
 
@@ -230,6 +239,7 @@ export function PurchaseOrderView({
               </span>
               {canWrite &&
                 detailQ.data.status !== 'received' &&
+                detailQ.data.status !== 'distributed' &&
                 detailQ.data.status !== 'cancelled' && (
                   <button
                     type="button"

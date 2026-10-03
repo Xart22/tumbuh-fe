@@ -4,16 +4,17 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/icon';
 import { DropdownSearch } from '@/components/ui/dropdown-search';
-import { getProductRecipe, replaceProductRecipe } from '@/lib/api';
+import { getProductRecipe, listUnits, replaceProductRecipe } from '@/lib/api';
 import { formatIDR, formatQty } from '@/lib/format';
 import type { RawMaterial } from '@/lib/types';
+import { recipeQtyInStockUnit } from './unit-convert';
 
-type DraftItem = { rawMaterialId: string; qtyUsed: number };
+type DraftItem = { rawMaterialId: string; qtyUsed: number; unit: string };
 
 /**
- * Bill of materials for one product. HPP is computed live from each material's
- * `costPerUnit`; the BE stores qty in the material's own unit (no unit
- * conversion exists yet), so the unit column is fixed.
+ * Bill of materials for one product. The BE stores each line in its own unit
+ * and converts on consumption, so the stored `unit` is preserved verbatim —
+ * rewriting it to the material's current unit would silently rescale the qty.
  */
 export function RecipeEditor({
   product,
@@ -48,6 +49,7 @@ export function RecipeEditor({
       initial={recipeQ.data.items.map((item) => ({
         rawMaterialId: item.rawMaterialId,
         qtyUsed: item.qtyUsed,
+        unit: item.unit,
       }))}
     />
   );
@@ -65,6 +67,8 @@ function RecipeForm({
   const queryClient = useQueryClient();
   const [items, setItems] = useState<DraftItem[]>(initial);
   const [error, setError] = useState<string | null>(null);
+  const unitsQ = useQuery({ queryKey: ['units'], queryFn: listUnits });
+  const units = unitsQ.data ?? [];
 
   const byId = new Map(materials.map((material) => [material.id, material]));
   const usedIds = new Set(items.map((item) => item.rawMaterialId));
@@ -76,10 +80,21 @@ function RecipeForm({
     subLabel: `${formatIDR(m.costPerUnit)} / ${m.stockUnitCode ?? m.unit}`,
   }));
 
-  const hpp = items.reduce((sum, item) => {
+  // Cost per stock unit: convert a line stored in another unit before pricing.
+  const costOf = (item: DraftItem): number => {
     const material = byId.get(item.rawMaterialId);
-    return sum + (material ? item.qtyUsed * material.costPerUnit : 0);
-  }, 0);
+    if (!material) return 0;
+    const stockUnit = material.stockUnitCode ?? material.unit;
+    const qtyStock = recipeQtyInStockUnit(
+      item.qtyUsed,
+      item.unit,
+      stockUnit,
+      units,
+    );
+    return qtyStock * material.costPerUnit;
+  };
+
+  const hpp = items.reduce((sum, item) => sum + costOf(item), 0);
   const foodCostPct = product.basePrice > 0 ? (hpp / product.basePrice) * 100 : null;
   const marginPct =
     product.basePrice > 0 ? ((product.basePrice - hpp) / product.basePrice) * 100 : null;
@@ -90,14 +105,11 @@ function RecipeForm({
         product.id,
         items
           .filter((item) => item.qtyUsed > 0)
-          .map((item) => {
-            const material = byId.get(item.rawMaterialId);
-            return {
-              rawMaterialId: item.rawMaterialId,
-              qtyUsed: item.qtyUsed,
-              unit: material?.unit ?? '',
-            };
-          }),
+          .map((item) => ({
+            rawMaterialId: item.rawMaterialId,
+            qtyUsed: item.qtyUsed,
+            unit: item.unit,
+          })),
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -115,7 +127,7 @@ function RecipeForm({
     if (!next) return;
     setItems((state) => [
       ...state,
-      { rawMaterialId: next.id, qtyUsed: 1 },
+      { rawMaterialId: next.id, qtyUsed: 1, unit: next.stockUnitCode ?? next.unit },
     ]);
   }
 
@@ -149,8 +161,7 @@ function RecipeForm({
               </tr>
             ) : (
               items.map((item, index) => {
-                const material = byId.get(item.rawMaterialId);
-                const cost = material ? item.qtyUsed * material.costPerUnit : 0;
+                const cost = costOf(item);
                 return (
                   <tr
                     key={item.rawMaterialId}
@@ -163,11 +174,18 @@ function RecipeForm({
                         aria-label={`Bahan baris ${index + 1}`}
                         onChange={(val) =>
                           setItems((state) =>
-                            state.map((row, i) =>
-                              i === index
-                                ? { ...row, rawMaterialId: val }
-                                : row,
-                            ),
+                            state.map((row, i) => {
+                              if (i !== index) return row;
+                              const next = byId.get(val);
+                              return {
+                                ...row,
+                                rawMaterialId: val,
+                                unit:
+                                  next?.stockUnitCode ??
+                                  next?.unit ??
+                                  row.unit,
+                              };
+                            }),
                           )
                         }
                         placeholder="Pilih bahan…"
@@ -195,7 +213,7 @@ function RecipeForm({
                       />
                     </td>
                     <td className="py-2 text-xs text-lp-on-surface-variant">
-                      {material?.unit ?? '—'}
+                      {item.unit || '—'}
                     </td>
                     <td className="py-2 text-right font-lp-mono text-sm text-lp-on-surface">
                       {formatIDR(cost)}

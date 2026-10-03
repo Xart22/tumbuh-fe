@@ -28,6 +28,15 @@ export function restockPurchaseQty(material: RawMaterial): number {
 }
 
 /**
+ * Stock-unit quantity (min 1) that restocks a material to twice its min.
+ * POs are created and received in stock units — never purchase units.
+ */
+export function restockStockQty(material: RawMaterial): number {
+  const needed = Math.max(0, material.minStockQty * 2 - material.stockQty);
+  return Math.max(1, Math.ceil(needed));
+}
+
+/**
  * Reorder point per material: cover `coverDays` of measured usage and never
  * restock below twice the minimum level. Usage comes from paid sales (stock
  * mutations), so a material with no sales only surfaces when it is under its

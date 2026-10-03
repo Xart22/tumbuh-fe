@@ -147,7 +147,7 @@ export function ReportsView() {
             HPP Terjual + Waste
           </span>
           <div className="mt-1 font-lp-mono text-xl font-bold text-lp-on-surface">
-            {formatIDR(profit?.cogs ?? 0)}
+            {formatIDR(profit?.totalCost ?? 0)}
           </div>
           <span className="text-[11px] text-lp-tertiary">
             waste {formatIDR(profit?.wasteCost ?? 0)}

@@ -863,6 +863,23 @@ export function listRawMaterialsPage(
   );
 }
 
+/**
+ * Every active raw material, walking past the BE's 100-per-page cap. Used by
+ * the reorder engine, recipe editor and pickers that must not silently miss
+ * materials beyond the first page.
+ */
+export async function listAllRawMaterials(): Promise<RawMaterial[]> {
+  const first = await listRawMaterialsPage({ page: 1, limit: 100 });
+  const totalPages = first.totalPages ?? 1;
+  if (totalPages <= 1) return first.items;
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) =>
+      listRawMaterialsPage({ page: i + 2, limit: 100 }),
+    ),
+  );
+  return [...first.items, ...rest.flatMap((page) => page.items)];
+}
+
 export type RawMaterialInput = {
   name: string;
   unit?: string;
