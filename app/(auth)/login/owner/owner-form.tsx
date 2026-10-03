@@ -56,6 +56,16 @@ export function OwnerLoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await loginOwner(values.email.trim(), values.password, picked || undefined);
+      const role = useAuthStore.getState().user?.role;
+      if (role !== 'owner' && role !== 'manager') {
+        // Akun karyawan: sesi ini milik POS, bukan backoffice.
+        useAuthStore.getState().logout();
+        setError('root.server', {
+          message:
+            'Akun ini milik karyawan. Masuk lewat halaman Kasir (/kasir) dengan PIN atau Email.',
+        });
+        return;
+      }
       router.replace('/dashboard');
     } catch (err) {
       if (err instanceof WorkspaceChoiceRequired) {

@@ -62,6 +62,7 @@ import type {
   EmployeeSalesReport,
   Employee,
   EmployeeOutlet,
+  EmployeeInvite,
   PayType,
   Shift,
   CurrentShift,
@@ -1643,6 +1644,54 @@ export function updateEmployee(
 export function deleteEmployee(id: string): Promise<{ id: string }> {
   return apiFetch<{ id: string }>(`/v1/employees/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export type EmployeeInviteInput = {
+  email: string;
+  employeeId?: string;
+  name?: string;
+  role?: string;
+  jobTitle?: string;
+  outletIds?: string[];
+  payType?: PayType;
+  baseSalary?: number;
+  shiftRate?: number;
+  commissionRate?: number;
+};
+
+export function inviteEmployee(
+  input: EmployeeInviteInput,
+): Promise<{ id: string; employeeId: string; email: string; expiresAt: string }> {
+  return apiFetch(`/v1/employees/invites`, { method: 'POST', body: input });
+}
+
+export function listEmployeeInvites(): Promise<EmployeeInvite[]> {
+  return apiFetch<EmployeeInvite[]>(`/v1/employees/invites`);
+}
+
+export function resendEmployeeInvite(id: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/v1/employees/invites/${id}/resend`, {
+    method: 'POST',
+  });
+}
+
+export function revokeEmployeeInvite(id: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/v1/employees/invites/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function acceptEmployeeInvite(input: {
+  tenantSlug: string;
+  token: string;
+  password: string;
+  name?: string;
+}): Promise<OwnerLoginResult> {
+  return apiFetch<OwnerLoginResult>('/v1/auth/accept-invite', {
+    method: 'POST',
+    body: input,
+    outletScoped: false,
   });
 }
 

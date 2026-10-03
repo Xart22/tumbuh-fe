@@ -10,16 +10,31 @@ import { Alert, Button, Card, Field, Input } from '@/components/pos-ui';
 import type { Outlet } from '@/lib/types';
 import { useAuthStore, fetchPublicStore } from '@/stores/auth-store';
 
-const loginSchema = z.object({
+const pinSchema = z.object({
+  mode: z.literal('pin'),
   outletId: z.string().min(1, 'Pilih outlet dulu.'),
   pin: z.string().min(1, 'PIN wajib diisi.').min(4, 'PIN minimal 4 digit.'),
+  email: z.string().optional(),
+  password: z.string().optional(),
 });
 
+const emailSchema = z.object({
+  mode: z.literal('email'),
+  outletId: z.string().min(1, 'Pilih outlet dulu.'),
+  pin: z.string().optional(),
+  email: z.string().trim().min(1, 'Email wajib diisi.').email('Email yang valid wajib diisi.'),
+  password: z.string().min(1, 'Kata sandi wajib diisi.'),
+});
+
+const loginSchema = z.discriminatedUnion('mode', [pinSchema, emailSchema]);
+
 type LoginValues = z.infer<typeof loginSchema>;
+type LoginMode = LoginValues['mode'];
 
 export function LoginForm() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
+  const loginEmail = useAuthStore((s) => s.loginEmail);
   const tenantSlug = useAuthStore((s) => s.tenantSlug);
   const setTenantSlug = useAuthStore((s) => s.setTenantSlug);
   const selectOutlet = useAuthStore((s) => s.selectOutlet);
@@ -35,8 +50,10 @@ export function LoginForm() {
   } = useForm<LoginValues>({
     mode: 'onTouched',
     resolver: zodResolver(loginSchema),
-    defaultValues: { outletId: '', pin: '' },
+    defaultValues: { mode: 'pin', outletId: '', pin: '', email: '', password: '' },
   });
+
+  const [authMode, setAuthMode] = useState<LoginMode>('pin');
 
   const [slug, setSlug] = useState(tenantSlug);
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -94,7 +111,11 @@ export function LoginForm() {
     clearErrors('root.server');
     try {
       setTenantSlug(slug.trim());
-      await login(values.outletId, values.pin);
+      if (values.mode === 'email') {
+        await loginEmail(values.outletId, values.email, values.password);
+      } else {
+        await login(values.outletId, values.pin ?? '');
+      }
       selectOutlet(
         values.outletId,
         outlets.find((o) => o.id === values.outletId)?.name ?? '',
@@ -106,9 +127,16 @@ export function LoginForm() {
       setError('root.server', {
         message: err instanceof Error ? err.message : 'Login gagal.',
       });
-      setValue('pin', '');
+      if (values.mode === 'email') setValue('password', '');
+      else setValue('pin', '');
     }
   });
+
+  function switchMode(next: LoginMode) {
+    setAuthMode(next);
+    setValue('mode', next, { shouldValidate: true });
+    clearErrors('root.server');
+  }
 
   return (
     <Card className="w-full max-w-sm">
@@ -117,8 +145,32 @@ export function LoginForm() {
           {businessName ?? 'Masuk Kasir'}
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Pilih outlet, lalu masukkan PIN kasir.
+          Pilih outlet, lalu masuk dengan PIN atau akun email.
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--panel-2)] p-1" role="tablist" aria-label="Metode masuk">
+        {(
+          [
+            { id: 'pin', label: 'PIN Kasir' },
+            { id: 'email', label: 'Email' },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={authMode === tab.id}
+            onClick={() => switchMode(tab.id)}
+            className={`h-11 rounded-lg text-sm font-bold transition ${
+              authMode === tab.id
+                ? 'bg-white text-ink shadow-sm'
+                : 'text-muted hover:text-ink'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
@@ -161,28 +213,69 @@ export function LoginForm() {
           )}
         </Field>
 
-        <Field label="PIN Kasir">
-          <Input
-            {...register('pin')}
-            onChange={(e) =>
-              setValue('pin', e.target.value.replace(/\D/g, ''), {
-                shouldValidate: true,
-                shouldTouch: true,
-              })
-            }
-            inputMode="numeric"
-            type="password"
-            maxLength={8}
-            placeholder="••••"
-            autoFocus
-            aria-invalid={!!errors.pin}
-          />
-          {errors.pin && (
-            <p role="alert" className="mt-1 text-xs font-medium text-red-400">
-              {errors.pin.message}
+        {authMode === 'pin' ? (
+          <Field label="PIN Kasir">
+            <Input
+              {...register('pin')}
+              onChange={(e) =>
+                setValue('pin', e.target.value.replace(/\D/g, ''), {
+                  shouldValidate: true,
+                  shouldTouch: true,
+                })
+              }
+              inputMode="numeric"
+              type="password"
+              maxLength={8}
+              placeholder="••••"
+              autoFocus
+              aria-invalid={!!errors.pin}
+            />
+            {errors.pin && (
+              <p role="alert" className="mt-1 text-xs font-medium text-red-400">
+                {errors.pin.message}
+              </p>
+            )}
+          </Field>
+        ) : (
+          <>
+            <Field label="Email">
+              <Input
+                {...register('email')}
+                type="email"
+                autoComplete="email"
+                autoFocus
+                placeholder="nama@email.com"
+                aria-invalid={!!errors.email}
+              />
+              {errors.email && (
+                <p role="alert" className="mt-1 text-xs font-medium text-red-400">
+                  {errors.email.message}
+                </p>
+              )}
+            </Field>
+            <Field label="Kata Sandi">
+              <Input
+                {...register('password')}
+                type="password"
+                autoComplete="current-password"
+                placeholder="Kata sandi akun"
+                aria-invalid={!!errors.password}
+              />
+              {errors.password && (
+                <p role="alert" className="mt-1 text-xs font-medium text-red-400">
+                  {errors.password.message}
+                </p>
+              )}
+            </Field>
+            <p className="-mt-2 text-xs text-muted">
+              Lupa sandi? Atur ulang lewat{' '}
+              <Link href="/lupa-password" className="font-medium text-teal-500 hover:underline">
+                Lupa Password
+              </Link>
+              .
             </p>
-          )}
-        </Field>
+          </>
+        )}
 
         {errors.root?.server && (
           <Alert kind="error">{errors.root.server.message}</Alert>

@@ -840,10 +840,27 @@ export type Employee = {
   isActive: boolean;
   joinedAt?: string | null;
   jobTitle: string | null;
+  /** Email login (null = belum diundang). */
+  loginEmail: string | null;
+  /** Status undangan login: none | pending | active. */
+  inviteStatus: 'none' | 'pending' | 'active';
   payType: PayType;
   baseSalary: number | null;
   shiftRate: number | null;
   commissionRate: number | null;
+};
+
+export type EmployeeInviteStatus = 'pending' | 'accepted' | 'expired';
+
+export type EmployeeInvite = {
+  id: string;
+  employeeId: string;
+  employeeName: string | null;
+  role: string | null;
+  email: string;
+  status: EmployeeInviteStatus;
+  expiresAt: string;
+  createdAt: string;
 };
 
 export type EmployeeOutlet = {

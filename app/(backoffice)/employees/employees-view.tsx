@@ -16,12 +16,16 @@ import {
   deleteEmployee,
   deleteSchedule,
   getEmployeeOutlets,
+  inviteEmployee,
   listAttendances,
   listEmployees,
+  listEmployeeInvites,
   listOutlets,
   listShifts,
   openShift,
   requestScheduleSwap,
+  resendEmployeeInvite,
+  revokeEmployeeInvite,
   scheduleWeek,
   setEmployeeOutlets,
   updateEmployee,
@@ -149,13 +153,23 @@ function EmployeePanel() {
   const queryClient = useQueryClient();
   const employeesQ = useEmployees();
   const employees = employeesQ.data ?? [];
+  const invitesQ = useQuery({
+    queryKey: ['employee-invites'],
+    queryFn: listEmployeeInvites,
+  });
+  const pendingInvites = (invitesQ.data ?? []).filter(
+    (invite) => invite.status === 'pending',
+  );
   const [editing, setEditing] = useState<Employee | null | 'new'>(null);
   const [outletTarget, setOutletTarget] = useState<Employee | null>(null);
+  const [inviteTarget, setInviteTarget] = useState<Employee | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
-  const invalidate = () =>
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['employees'] });
+    queryClient.invalidateQueries({ queryKey: ['employee-invites'] });
+  };
 
   const saveM = useMutation({
     mutationFn: (values: EmployeeFormValues) => {
@@ -211,6 +225,33 @@ function EmployeePanel() {
       setError(err instanceof Error ? err.message : 'Gagal menghapus karyawan.'),
   });
 
+  const inviteM = useMutation({
+    mutationFn: ({ id, email }: { id: string; email: string }) =>
+      inviteEmployee({ employeeId: id, email }),
+    onSuccess: () => {
+      setInviteTarget(null);
+      void invalidate();
+    },
+    onError: (err) =>
+      setError(err instanceof Error ? err.message : 'Gagal mengirim undangan.'),
+  });
+
+  const resendM = useMutation({
+    mutationFn: (id: string) => resendEmployeeInvite(id),
+    onSuccess: () => void invalidate(),
+    onError: (err) =>
+      setError(
+        err instanceof Error ? err.message : 'Gagal mengirim ulang undangan.',
+      ),
+  });
+
+  const revokeM = useMutation({
+    mutationFn: (id: string) => revokeEmployeeInvite(id),
+    onSuccess: () => void invalidate(),
+    onError: (err) =>
+      setError(err instanceof Error ? err.message : 'Gagal mencabut undangan.'),
+  });
+
   return (
     <div className={PANEL}>
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -257,6 +298,7 @@ function EmployeePanel() {
                 <th className="pb-2">Peran</th>
                 <th className="pb-2">Skema Gaji</th>
                 <th className="pb-2">Nomor HP</th>
+                <th className="pb-2">Login</th>
                 <th className="pb-2 text-center">Status</th>
                 <th className="pb-2 text-right">Aksi</th>
               </tr>
@@ -292,6 +334,19 @@ function EmployeePanel() {
                   <td className="py-2.5 font-lp-mono text-lp-on-surface-variant">
                     {employee.phone ?? '—'}
                   </td>
+                  <td className="py-2.5">
+                    {employee.inviteStatus === 'active' ? (
+                      <span className="block max-w-40 truncate font-lp-mono text-[11px] text-lp-on-surface-variant">
+                        {employee.loginEmail}
+                      </span>
+                    ) : employee.inviteStatus === 'pending' ? (
+                      <span className="rounded-full bg-lp-secondary-container px-2 py-0.5 text-[10px] font-semibold text-lp-on-secondary-container">
+                        Undangan terkirim
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-lp-tertiary">PIN saja</span>
+                    )}
+                  </td>
                   <td className="py-2.5 text-center">
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
@@ -305,6 +360,16 @@ function EmployeePanel() {
                   </td>
                   <td className="py-2.5">
                     <div className="flex justify-end gap-1">
+                      {employee.inviteStatus === 'none' && (
+                        <IconButton
+                          label="Undang login email"
+                          icon="mail"
+                          onClick={() => {
+                            setError(null);
+                            setInviteTarget(employee);
+                          }}
+                        />
+                      )}
                       <IconButton
                         label="Atur outlet"
                         icon="storefront"
@@ -324,7 +389,7 @@ function EmployeePanel() {
                         onClick={() => toggleM.mutate(employee)}
                       />
                       <IconButton
-                        label="Hapus"
+                        label="Kick (nonaktifkan + cabut akses)"
                         icon="delete"
                         tone="danger"
                         onClick={() => setEmployeeToDelete(employee)}
@@ -357,9 +422,9 @@ function EmployeePanel() {
 
       <ConfirmDialog
         open={employeeToDelete !== null}
-        title={`Hapus Karyawan "${employeeToDelete?.name}"?`}
-        description="Data profil, riwayat shift, dan akses kasir karyawan ini akan dihapus secara permanen."
-        confirmText="Ya, Hapus Karyawan"
+        title={`Kick Karyawan "${employeeToDelete?.name}"?`}
+        description="Karyawan dinonaktifkan: akses PIN dan login email dicabut, sesi yang sedang berjalan langsung ditolak. Riwayat shift, absensi, dan payroll tetap tersimpan."
+        confirmText="Ya, Kick Karyawan"
         cancelText="Batal"
         variant="danger"
         isLoading={deleteM.isPending}
@@ -372,7 +437,151 @@ function EmployeePanel() {
           }
         }}
       />
+
+      {inviteTarget && (
+        <InviteModal
+          employee={inviteTarget}
+          pending={inviteM.isPending}
+          errorMessage={error}
+          onClose={() => setInviteTarget(null)}
+          onSubmit={(email) =>
+            inviteM.mutate({ id: inviteTarget.id, email })
+          }
+        />
+      )}
+
+      {pendingInvites.length > 0 && (
+        <div className="mt-4 rounded-xl border border-lp-surface-container p-3">
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-lp-tertiary">
+            Undangan Tertunda ({pendingInvites.length})
+          </h3>
+          <ul className="flex flex-col gap-1.5">
+            {pendingInvites.map((invite) => (
+              <li
+                key={invite.id}
+                className="flex flex-wrap items-center gap-2 rounded-lg bg-lp-surface-low px-3 py-2 text-sm"
+              >
+                <span className="font-semibold text-lp-on-surface">
+                  {invite.employeeName ?? '—'}
+                </span>
+                <span className="font-lp-mono text-xs text-lp-on-surface-variant">
+                  {invite.email}
+                </span>
+                <span className="ml-auto flex gap-1">
+                  <button
+                    type="button"
+                    disabled={resendM.isPending}
+                    onClick={() => resendM.mutate(invite.id)}
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold text-lp-primary hover:bg-lp-primary-fixed/30 disabled:opacity-60"
+                  >
+                    Kirim ulang
+                  </button>
+                  <button
+                    type="button"
+                    disabled={revokeM.isPending}
+                    onClick={() => revokeM.mutate(invite.id)}
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold text-lp-error hover:bg-lp-error-container disabled:opacity-60"
+                  >
+                    Cabut
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
+  );
+}
+
+function InviteModal({
+  employee,
+  pending,
+  errorMessage,
+  onClose,
+  onSubmit,
+}: {
+  employee: Employee;
+  pending: boolean;
+  errorMessage?: string | null;
+  onClose: () => void;
+  onSubmit: (email: string) => void;
+}) {
+  const [email, setEmail] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  function submit() {
+    const value = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setLocalError('Email tidak valid.');
+      return;
+    }
+    setLocalError(null);
+    onSubmit(value);
+  }
+
+  return (
+    <Overlay
+      title="Undang Login Email"
+      subtitle={`${employee.name} · ${roleLabel(employee.role)}`}
+      onClose={onClose}
+    >
+      <p className="mb-3 text-xs leading-relaxed text-lp-on-surface-variant">
+        Karyawan menerima tautan untuk membuat kata sandi (berlaku 7 hari),
+        lalu bisa masuk lewat PIN maupun Email di halaman kasir.
+      </p>
+      <label
+        htmlFor="invite-email"
+        className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-lp-tertiary"
+      >
+        Email Karyawan
+      </label>
+      <input
+        id="invite-email"
+        type="email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder="nama@email.com"
+        autoFocus
+        aria-invalid={!!localError}
+        className="w-full rounded-lg border border-lp-outline-variant bg-lp-surface-container-lowest px-3 py-2.5 text-sm font-medium text-lp-on-surface outline-none transition focus:border-lp-primary aria-[invalid=true]:border-lp-error"
+      />
+      <div className="min-h-4">
+        {localError && (
+          <p role="alert" className="mt-1 text-xs font-medium text-lp-error">
+            {localError}
+          </p>
+        )}
+      </div>
+
+      {errorMessage && (
+        <div
+          role="alert"
+          className="mt-1 rounded-lg border border-lp-error-container bg-lp-error-container px-3 py-2 text-xs font-medium text-lp-on-error-container"
+        >
+          {errorMessage}
+        </div>
+      )}
+
+      <div className="flex items-center justify-end gap-2 pt-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg px-4 py-2.5 text-sm font-semibold text-lp-on-surface-variant hover:bg-lp-surface-container"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          disabled={pending || email.trim() === ''}
+          onClick={submit}
+          className="flex items-center gap-1.5 rounded-lg bg-lp-primary px-5 py-2.5 text-sm font-bold text-lp-on-primary shadow-sm transition hover:bg-lp-primary-container disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Icon name="mail" className="text-[18px]" />
+          {pending ? 'Mengirim…' : 'Kirim Undangan'}
+        </button>
+      </div>
+    </Overlay>
   );
 }
 

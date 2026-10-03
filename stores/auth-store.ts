@@ -12,6 +12,7 @@ export { WorkspaceChoiceRequired };
 import type {
   LoginKasirResult,
   Outlet,
+  OwnerLoginResult,
   PublicStore,
   Role,
 } from '@/lib/types';
@@ -27,6 +28,10 @@ type AuthState = {
   login: (outletId: string, pin: string) => Promise<void>;
   /** Workspace owner/manager login — session without an outlet scope. */
   loginOwner: (email: string, password: string, tenantSlug?: string) => Promise<void>;
+  /** Employee email login — password session bound to an outlet for POS. */
+  loginEmail: (outletId: string, email: string, password: string) => Promise<void>;
+  /** Adopt tokens issued elsewhere (e.g. invite accept) — no outlet yet. */
+  adoptSession: (result: OwnerLoginResult) => void;
   logout: () => void;
   selectOutlet: (outletId: string, outletName: string) => void;
   setTenantSlug: (slug: string) => void;
@@ -75,6 +80,48 @@ export const useAuthStore = create<AuthState>()(
           throw new WorkspaceChoiceRequired(result.workspaces);
         }
         if (tenantSlug) set({ tenantSlug: tenantSlug.trim().toLowerCase() });
+        set({
+          token: result.accessToken,
+          outletId: null,
+          outletName: null,
+          user: {
+            id: result.user.id,
+            name: result.user.name,
+            role: result.user.role as Role,
+          },
+        });
+        setAuthContext(result.accessToken, null);
+      },
+
+      async loginEmail(outletId, email, password) {
+        const slug = get().tenantSlug.trim().toLowerCase();
+        const result = await loginOwner({
+          email,
+          password,
+          tenantSlug: slug || undefined,
+        });
+        if (!('accessToken' in result)) {
+          throw new WorkspaceChoiceRequired(result.workspaces);
+        }
+        const outletName =
+          get().outletId === outletId ? get().outletName : null;
+        set({
+          token: result.accessToken,
+          outletId,
+          outletName,
+          user: {
+            id: result.user.id,
+            name: result.user.name,
+            role: result.user.role as Role,
+          },
+        });
+        setAuthContext(result.accessToken, outletId);
+      },
+
+      adoptSession(result) {
+        if (!('accessToken' in result)) {
+          throw new WorkspaceChoiceRequired(result.workspaces);
+        }
         set({
           token: result.accessToken,
           outletId: null,

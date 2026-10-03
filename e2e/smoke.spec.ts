@@ -35,10 +35,20 @@ test('register wizard validates step 1 inline then advances', async ({ page }) =
 
 test('kasir login validates PIN length client-side', async ({ page }) => {
   await page.goto('/kasir');
-  await expect(page.getByText('PIN Kasir', { exact: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'PIN Kasir' })).toBeVisible();
   await page.getByPlaceholder('••••').fill('12');
   await page.getByRole('button', { name: /^masuk$/i }).click();
   await expect(page.getByText('PIN minimal 4 digit.')).toBeVisible();
+});
+
+test('kasir login email tab validates email client-side', async ({ page }) => {
+  await page.goto('/kasir');
+  await page.getByRole('tab', { name: 'Email' }).click();
+  await expect(page.getByPlaceholder('nama@email.com')).toBeVisible();
+  await page.getByPlaceholder('nama@email.com').fill('bukan-email');
+  await page.getByPlaceholder('Kata sandi akun').fill('rahasia123');
+  await page.getByRole('button', { name: /^masuk$/i }).click();
+  await expect(page.getByText('Email yang valid wajib diisi.')).toBeVisible();
 });
 
 test('owner login validates email client-side', async ({ page }) => {
