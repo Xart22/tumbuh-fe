@@ -25,12 +25,19 @@ export function AuthGate({
   requireAuth = true,
   requireOutlet = true,
   loginPath = '/login',
+  redirectIfAuthed = true,
 }: {
   children: React.ReactNode;
   requireAuth?: boolean;
   requireOutlet?: boolean;
   /** Where to send sessions that fail the gate (POS uses /kasir). */
   loginPath?: string;
+  /**
+   * When false, an already-signed-in session is NOT auto-redirected to its
+   * role home. Pages that adopt a session and still have steps to run (invite
+   * accept, multi-outlet login) must keep control of navigation.
+   */
+  redirectIfAuthed?: boolean;
 }) {
   const router = useRouter();
   const token = useAuthStore((s) => s.token);
@@ -60,17 +67,26 @@ export function AuthGate({
   useEffect(() => {
     if (!hydrated) return;
     if (!allowed) router.replace(loginPath);
-    else if (!requireAuth && session) {
+    else if (!requireAuth && session && redirectIfAuthed) {
       // Already signed in — send each role to its home.
       router.replace(routeForRole(user?.role));
     }
-  }, [hydrated, allowed, session, user, requireAuth, loginPath, router]);
+  }, [
+    hydrated,
+    allowed,
+    session,
+    user,
+    requireAuth,
+    redirectIfAuthed,
+    loginPath,
+    router,
+  ]);
 
   if (!hydrated) return <Splash label="Memuat…" />;
   if (!allowed) {
     return <Splash label="Mengalihkan ke login…" />;
   }
-  if (!requireAuth && session) {
+  if (!requireAuth && session && redirectIfAuthed) {
     return <Splash label="Mengalihkan…" />;
   }
 
