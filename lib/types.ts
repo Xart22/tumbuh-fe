@@ -1203,14 +1203,23 @@ export type ReceiptData = {
 export const EXPENSE_COST_TYPES = ['variable', 'fixed'] as const;
 export type ExpenseCostType = (typeof EXPENSE_COST_TYPES)[number];
 
-export const EXPENSE_CATEGORY_SUGGESTIONS = [
-  'Bahan Baku',
-  'Operasional',
-  'Gaji',
-  'Sewa',
-  'Utilitas',
-  'Lainnya',
+/**
+ * Canonical expense categories stored on `expenses.category`. The BE P&L buckets
+ * by these keys, so the UI stores the key and only shows the Indonesian label.
+ */
+export const EXPENSE_CATEGORIES = [
+  { value: 'raw_material', label: 'Bahan Baku' },
+  { value: 'operational', label: 'Operasional' },
+  { value: 'salary', label: 'Gaji' },
+  { value: 'rent', label: 'Sewa' },
+  { value: 'utility', label: 'Utilitas' },
+  { value: 'other', label: 'Lain-lain' },
 ] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]['value'];
+
+export function expenseCategoryLabel(value: string): string {
+  return EXPENSE_CATEGORIES.find((c) => c.value === value)?.label ?? value;
+}
 
 export type Expense = {
   id: string;

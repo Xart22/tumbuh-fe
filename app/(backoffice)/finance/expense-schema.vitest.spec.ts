@@ -3,7 +3,7 @@ import { expenseSchema, toExpenseInput } from './expense-form';
 
 describe('expenseSchema', () => {
   const base = {
-    category: 'Operasional',
+    category: 'operational',
     costType: 'variable' as const,
     amount: '50000',
     description: 'Gas',
@@ -38,14 +38,14 @@ describe('toExpenseInput', () => {
   it('converts the amount and trims fields', () => {
     expect(
       toExpenseInput({
-        category: ' Operasional ',
+        category: ' operational ',
         costType: 'fixed',
         amount: '150000',
         description: '  Sewa  ',
         expenseDate: '2026-09-28',
       }),
     ).toEqual({
-      category: 'Operasional',
+      category: 'operational',
       costType: 'fixed',
       amount: 150000,
       description: 'Sewa',
@@ -56,7 +56,7 @@ describe('toExpenseInput', () => {
   it('drops an empty description', () => {
     expect(
       toExpenseInput({
-        category: 'Lainnya',
+        category: 'other',
         costType: 'variable',
         amount: '1000',
         description: '',

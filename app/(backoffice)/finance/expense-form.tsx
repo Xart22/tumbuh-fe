@@ -7,7 +7,7 @@ import { Icon } from '@/components/icon';
 import { Overlay } from '@/components/overlay';
 import type { ExpenseInput } from '@/lib/api';
 import {
-  EXPENSE_CATEGORY_SUGGESTIONS,
+  EXPENSE_CATEGORIES,
   EXPENSE_COST_TYPES,
 } from '@/lib/types';
 
@@ -91,20 +91,20 @@ export function ExpenseFormModal({
             <label htmlFor="x-cat" className={labelCls}>
               Kategori
             </label>
-            <input
+            <select
               id="x-cat"
               {...register('category')}
-              list="expense-categories"
               autoFocus
-              placeholder="Operasional"
               aria-invalid={!!errors.category}
               className={inputCls}
-            />
-            <datalist id="expense-categories">
-              {EXPENSE_CATEGORY_SUGGESTIONS.map((value) => (
-                <option key={value} value={value} />
+            >
+              <option value="">Pilih kategori…</option>
+              {EXPENSE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
               ))}
-            </datalist>
+            </select>
             <FieldError message={errors.category?.message} />
           </div>
           <div>

@@ -20,7 +20,11 @@ import {
   syncJournals,
 } from '@/lib/api';
 import { formatIDR, formatNumber, monthISO, todayISO } from '@/lib/format';
-import type { SupplierInvoice } from '@/lib/types';
+import {
+  EXPENSE_CATEGORIES,
+  expenseCategoryLabel,
+  type SupplierInvoice,
+} from '@/lib/types';
 import { ExpenseFormModal, toExpenseInput, type ExpenseFormValues } from './expense-form';
 import { InvoiceFormModal, toInvoicePayload, type InvoiceFormValues } from './invoice-form';
 
@@ -153,16 +157,22 @@ function ExpensePanel() {
             className={`ml-2 ${inputCls}`}
           />
         </label>
-        <input
+        <select
           value={category}
           onChange={(event) => {
             setCategory(event.target.value);
             setPage(1);
           }}
-          placeholder="Filter kategori…"
           aria-label="Filter kategori"
           className={inputCls}
-        />
+        >
+          <option value="">Semua kategori</option>
+          {EXPENSE_CATEGORIES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           onClick={() => {
@@ -214,7 +224,9 @@ function ExpensePanel() {
                     <td className="py-2 font-lp-mono text-lp-on-surface-variant">
                       {row.expenseDate}
                     </td>
-                    <td className="py-2 text-lp-on-surface">{row.category}</td>
+                    <td className="py-2 text-lp-on-surface">
+                      {expenseCategoryLabel(row.category)}
+                    </td>
                     <td className="py-2 text-lp-on-surface-variant">
                       {row.costType === 'fixed' ? 'Tetap' : 'Variabel'}
                     </td>
