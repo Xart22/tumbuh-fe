@@ -67,6 +67,25 @@ function fmtDate(iso: string): string {
   });
 }
 
+/** Lateness / early-leave chip; null for a plain on-time day. */
+function attendanceBadge(
+  status: string,
+): { label: string; className: string } | null {
+  if (status === 'late') {
+    return {
+      label: 'Terlambat',
+      className: 'bg-amber-100 text-amber-900 border-amber-300',
+    };
+  }
+  if (status === 'early_leave') {
+    return {
+      label: 'Pulang Cepat',
+      className: 'bg-blue-100 text-blue-900 border-blue-300',
+    };
+  }
+  return null;
+}
+
 function getPosition(): Promise<Geo> {
   return new Promise((resolve, reject) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -277,15 +296,22 @@ export default function AbsenPage() {
                 <Icon name="schedule" className="text-base text-lp-primary" />
                 Status hari ini
               </span>
-              {working ? (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-lp-primary">
-                  Sedang Bekerja
-                </span>
-              ) : (
-                <span className="rounded-full border border-lp-outline-variant/40 bg-lp-surface-low px-2.5 py-0.5 text-[11px] font-bold text-lp-on-surface-variant">
-                  Belum Absen Masuk
-                </span>
-              )}
+              <span className="flex items-center gap-1.5">
+                {today?.status === 'late' && (
+                  <span className="rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">
+                    Terlambat
+                  </span>
+                )}
+                {working ? (
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-lp-primary">
+                    Sedang Bekerja
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-lp-outline-variant/40 bg-lp-surface-low px-2.5 py-0.5 text-[11px] font-bold text-lp-on-surface-variant">
+                    Belum Absen Masuk
+                  </span>
+                )}
+              </span>
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -367,11 +393,14 @@ export default function AbsenPage() {
                   <th className="pb-2">Tanggal</th>
                   <th className="pb-2">Masuk</th>
                   <th className="pb-2">Keluar</th>
+                  <th className="pb-2">Status</th>
                   <th className="pb-2 text-right">Jam kerja</th>
                 </tr>
               </thead>
               <tbody>
-                {history.map((row) => (
+                {history.map((row) => {
+                  const badge = attendanceBadge(row.status);
+                  return (
                   <tr key={row.id} className="border-t border-lp-surface-container">
                     <td className="py-2 text-lp-on-surface">{fmtDate(row.clockIn)}</td>
                     <td className="py-2 font-lp-mono text-lp-on-surface">
@@ -380,11 +409,23 @@ export default function AbsenPage() {
                     <td className="py-2 font-lp-mono text-lp-on-surface">
                       {fmtTime(row.clockOut)}
                     </td>
+                    <td className="py-2">
+                      {badge ? (
+                        <span
+                          className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badge.className}`}
+                        >
+                          {badge.label}
+                        </span>
+                      ) : (
+                        <span className="text-lp-on-surface-variant">—</span>
+                      )}
+                    </td>
                     <td className="py-2 text-right font-lp-mono text-lp-on-surface">
                       {row.hoursWorked == null ? '—' : `${row.hoursWorked} jam`}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
