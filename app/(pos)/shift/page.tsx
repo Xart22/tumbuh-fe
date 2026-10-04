@@ -242,6 +242,13 @@ export default function ShiftReconciliationPage() {
 
       {loadError && <Alert kind="error">{loadError}</Alert>}
 
+      {data?.stale && (
+        <Alert kind="info">
+          Shift ini dibuka pada hari sebelumnya dan belum ditutup. Tutup shift
+          ini sebelum memulai transaksi hari ini.
+        </Alert>
+      )}
+
       {loading && !data ? (
         <div className="flex items-center justify-center py-24">
           <Spinner label="Memuat data shift…" />

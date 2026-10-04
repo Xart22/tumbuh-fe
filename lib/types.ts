@@ -910,8 +910,8 @@ export type Shift = {
 };
 
 export type CurrentShift =
-  | { currentShift: null }
-  | { currentShift: Shift; recap: ShiftRecap };
+  | { currentShift: null; stale?: boolean }
+  | { currentShift: Shift; recap: ShiftRecap; stale?: boolean };
 
 export type ShiftCloseResult = {
   shift: Shift;
