@@ -399,7 +399,16 @@ export default function AbsenPage() {
               </thead>
               <tbody>
                 {history.map((row) => {
-                  const badge = attendanceBadge(row.status);
+                  const noClockOut =
+                    row.clockOut === null &&
+                    localDateOf(row.clockIn) !== localDateISO(0);
+                  const badge =
+                    row.status === 'missing_clock_out' || noClockOut
+                      ? {
+                          label: 'Tidak absen pulang',
+                          className: 'bg-red-100 text-red-800 border-red-300',
+                        }
+                      : attendanceBadge(row.status);
                   return (
                   <tr key={row.id} className="border-t border-lp-surface-container">
                     <td className="py-2 text-lp-on-surface">{fmtDate(row.clockIn)}</td>
