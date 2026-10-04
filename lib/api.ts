@@ -40,6 +40,7 @@ import type {
   Supplier,
   StockForecast,
   TopProduct,
+  TenantModuleKey,
   Unit,
   UnitFamily,
   WasteReason,
@@ -235,6 +236,14 @@ export async function loginOwner(
     outletScoped: false,
   });
   return result;
+}
+
+/**
+ * Optional modules enabled for the signed-in tenant. Empty array = all enabled
+ * (see `isTenantModuleEnabled` on the BE).
+ */
+export function getEnabledModules(): Promise<TenantModuleKey[]> {
+  return apiFetch<TenantModuleKey[]>('/v1/auth/modules');
 }
 
 // --- Menu -----------------------------------------------------------------

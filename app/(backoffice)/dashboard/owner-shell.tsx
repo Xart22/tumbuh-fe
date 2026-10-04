@@ -10,6 +10,7 @@ import { LOGO_URL } from '@/components/landing/assets';
 import { Button } from '@/components/ui/button';
 import { activeShifts, listMyOutlets } from '@/lib/api';
 import { routeForRole } from '@/lib/login-routing';
+import { useEnabledModules } from '@/lib/use-enabled-modules';
 import { useAuthStore } from '@/stores/auth-store';
 import { NAV, SOON } from './backoffice-nav';
 import { HeaderSearch } from './header-search';
@@ -65,21 +66,37 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
     queryFn: listMyOutlets,
   });
 
+  const { isEnabled } = useEnabledModules();
+
   const nav = useMemo(
     () =>
       NAV.filter(
-        (item) => !item.roles || (user && item.roles.includes(user.role)),
+        (item) =>
+          (!item.roles || (user && item.roles.includes(user.role))) &&
+          (!item.module || isEnabled(item.module)),
       ),
-    [user],
+    [user, isEnabled],
   );
 
-  // Role-scoped route guard: keep every role inside its allowed backoffice pages.
+  // Role + module scoped route guard: keep every role inside its allowed,
+  // module-enabled backoffice pages.
   useEffect(() => {
     if (!user) return;
     const allowed = ALLOWED_PATHS[user.role];
-    if (allowed?.includes(pathname)) return;
-    router.replace(allowed?.[0] ?? routeForRole(user.role));
-  }, [user, pathname, router]);
+    if (!allowed) {
+      router.replace(routeForRole(user.role));
+      return;
+    }
+    const current = NAV.find((item) => item.href === pathname);
+    const moduleOff = current?.module && !isEnabled(current.module);
+    if (allowed.includes(pathname) && !moduleOff) return;
+    const firstAllowed = NAV.find(
+      (item) =>
+        allowed.includes(item.href) &&
+        (!item.module || isEnabled(item.module)),
+    )?.href;
+    router.replace(firstAllowed ?? allowed[0] ?? routeForRole(user.role));
+  }, [user, pathname, router, isEnabled]);
   const activeCount = shifts?.length ?? null;
   const singleShift = activeCount === 1 ? (shifts?.[0]?.terminalName ?? null) : null;
   const shiftPillText =
@@ -211,7 +228,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
               Tumbuh POS
             </span>
             <nav className="flex items-center gap-1 lg:hidden" aria-label="Navigasi utama">
-              {NAV.map((item) => (
+              {nav.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

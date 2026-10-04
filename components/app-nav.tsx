@@ -3,7 +3,9 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEnabledModules } from '@/lib/use-enabled-modules';
 import { useAuthStore } from '@/stores/auth-store';
+import type { TenantModuleKey } from '@/lib/types';
 import { Button } from './pos-ui';
 
 type NavLink = {
@@ -11,14 +13,15 @@ type NavLink = {
   label: string;
   roles: readonly string[] | null;
   hideForRoles?: readonly string[];
+  module?: TenantModuleKey;
 };
 
 const LINKS: NavLink[] = [
   { href: '/dashboard', label: 'Dashboard', roles: ['owner', 'manager'] },
   { href: '/pos', label: 'Kasir', roles: null, hideForRoles: ['staff'] },
-  { href: '/shift', label: 'Shift Kasir', roles: null, hideForRoles: ['staff'] },
-  { href: '/absen', label: 'Absen Saya', roles: null, hideForRoles: ['owner', 'manager'] },
-  { href: '/kds', label: 'KDS Dapur', roles: null, hideForRoles: ['staff'] },
+  { href: '/shift', label: 'Shift Kasir', roles: null, hideForRoles: ['staff'], module: 'shifts' },
+  { href: '/absen', label: 'Absen Saya', roles: null, hideForRoles: ['owner', 'manager'], module: 'shifts' },
+  { href: '/kds', label: 'KDS Dapur', roles: null, hideForRoles: ['staff'], module: 'kds' },
   { href: '/reports', label: 'Laporan', roles: ['owner', 'manager'] },
 ];
 
@@ -28,6 +31,7 @@ export function AppNav() {
   const user = useAuthStore((s) => s.user);
   const outletName = useAuthStore((s) => s.outletName);
   const logout = useAuthStore((s) => s.logout);
+  const { isEnabled } = useEnabledModules();
 
   const isStaff = user?.role === 'staff';
 
@@ -41,6 +45,7 @@ export function AppNav() {
     if (link.hideForRoles && user && link.hideForRoles.includes(user.role)) {
       return false;
     }
+    if (link.module && !isEnabled(link.module)) return false;
     return true;
   });
 

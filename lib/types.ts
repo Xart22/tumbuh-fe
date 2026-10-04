@@ -8,6 +8,22 @@ export type Role =
 
 export type OrderType = 'dine_in' | 'take_away' | 'delivery';
 
+/** Optional tenant modules (`public.tenants.enabled_modules`). Core areas are
+ * never listed here. Empty list on the BE = all enabled. */
+export const TENANT_MODULE_KEYS = [
+  'pos',
+  'kds',
+  'inventory',
+  'loyalty',
+  'shifts',
+  'online_store',
+  'accounting',
+  'multi_outlet',
+  'public_api',
+  'efaktur',
+] as const;
+export type TenantModuleKey = (typeof TENANT_MODULE_KEYS)[number];
+
 export const PAYMENT_METHODS = [
   'cash',
   'qris',
