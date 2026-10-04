@@ -94,7 +94,11 @@ export default function PosPage() {
     let cancelled = false;
     currentShift()
       .then((res) => {
-        if (!cancelled) setShiftOpen(res.currentShift !== null);
+        // A shift opened on a previous day is stale: BE rejects sales on it,
+        // so treat it as "no open shift" and prompt to open today's.
+        if (!cancelled) {
+          setShiftOpen(res.currentShift !== null && !res.stale);
+        }
       })
       .catch(() => {
         if (!cancelled) setShiftOpen(null);
